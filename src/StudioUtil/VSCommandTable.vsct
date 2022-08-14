@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable"
+              xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<Extern href="stdidcmd.h" />
+	<Extern href="vsshlids.h" />
+	<Include href="KnownImageIds.vsct" />
+	<Include href="VSGlobals.vsct" />
+
+	<Commands package="StudioUtil">
+		<Groups>
+			<Group guid="StudioUtil" id="grpIdMenuProjectItem" priority="0x0700">
+				<!--Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ITEMNODE" /-->
+			</Group>
+			<Group guid="StudioUtil" id="menuGroup" priority="0x1000">
+				<Parent guid="StudioUtil" id="menu" />
+			</Group>
+		</Groups>
+
+		<!--This section defines the elements the user can interact with, like a menu command or a button
+        or combo box in a toolbar. -->
+		<Buttons>
+			<Button guid="StudioUtil" id="CloneAndReplaceCommand" priority="0x1000" type="Button">
+				<Parent guid="StudioUtil" id="menuGroup" />
+				<Strings>
+					<ButtonText>Clone and replace</ButtonText>
+				</Strings>
+			</Button>
+			<Button guid="StudioUtil" id="SetVariablesCommand" priority="0x1000" type="Button">
+				<Parent guid="StudioUtil" id="menuGroup" />
+				<Strings>
+					<ButtonText>Set variables</ButtonText>
+				</Strings>
+			</Button>
+		</Buttons>
+
+		<Menus>
+			<Menu guid="StudioUtil" id="menu" type="Menu" priority="0x1000">
+				<Parent guid="StudioUtil" id="grpIdMenuProjectItem" />
+				<Strings>
+					<ButtonText>StudioUtil</ButtonText>
+				</Strings>
+			</Menu>
+		</Menus>
+	</Commands>
+
+	<CommandPlacements>
+		<CommandPlacement guid="StudioUtil" id="grpIdMenuProjectItem" priority="0xF00">
+			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ITEMNODE" />
+		</CommandPlacement>
+		<CommandPlacement guid="StudioUtil" id="grpIdMenuProjectItem" priority="0xF00">
+			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE" />
+		</CommandPlacement>
+		<CommandPlacement guid="StudioUtil" id="grpIdMenuProjectItem" priority="0xF00">
+			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_FOLDERNODE" />
+		</CommandPlacement>
+	</CommandPlacements>
+
+	<Symbols>
+		<GuidSymbol name="StudioUtil" value="{944e58c7-1767-4692-a75d-858605a5cff6}">
+			<IDSymbol name="grpIdMenuProjectItem" value="0x0319" />
+			<IDSymbol name="menu" value="0x0321" />
+			<IDSymbol name="menuGroup" value="0x0322" />
+			<IDSymbol name="CloneAndReplaceCommand" value="0x0323" />
+			<IDSymbol name="SetVariablesCommand" value="0x0324" />
+		</GuidSymbol>
+	</Symbols>
+</CommandTable>
