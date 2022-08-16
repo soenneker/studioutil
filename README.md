@@ -10,7 +10,7 @@ Download from the [Marketplace](https://marketplace.visualstudio.com/items?itemN
 
 ### **Copy a file and replace the contents**
 
-<img src="misc/whatitdoes.gif"/>
+<img src="misc/WhatItDoes.gif"/>
 
 Simply right click in your Solution explorer the file you wish to 'clone and replace':
 
