@@ -2,7 +2,7 @@
 
 A Visual Studio extension to ease development, with miscellaneous tools like fluent file cloning.
 
-Download from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=soenneker.StudioUtil), or from within Visual Studio -> Extensions -> Manage Extensions
+Download from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=soenneker.StudioUtil), or from within `Visual Studio -> Extensions -> Manage Extensions`
 
 <hr>
 
@@ -10,7 +10,7 @@ Download from the [Marketplace](https://marketplace.visualstudio.com/items?itemN
 
 ### **Copy a file and replace the contents**
 
-![gif](misc/whatitdoes.gif)
+<img src="misc/whatitdoes.gif"/>
 
 Simply right click in your Solution explorer the file you wish to 'clone and replace':
 
