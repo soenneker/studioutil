@@ -1,11 +1,17 @@
-﻿using System.Windows;
+﻿using System;
+using System.Threading.Tasks;
+using System.Windows;
+using Community.VisualStudio.Toolkit;
 using StudioUtil.Dtos;
 using StudioUtil.Utils.Abstract;
 using Community.VisualStudio.Toolkit.DependencyInjection.Core;
 using Community.VisualStudio.Toolkit.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Shell;
 
 namespace StudioUtil.Commands;
+
+#nullable enable
 
 [Command(PackageIds.SetVariablesCommand)]
 public class SetVariablesCommand : BaseDICommand

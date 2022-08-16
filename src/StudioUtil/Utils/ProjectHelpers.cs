@@ -1,4 +1,6 @@
-﻿using EnvDTE;
+﻿using System;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Project = EnvDTE.Project;
 
 namespace StudioUtil.Utils;

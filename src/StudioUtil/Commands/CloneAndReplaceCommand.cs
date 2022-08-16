@@ -1,6 +1,9 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows;
+using Community.VisualStudio.Toolkit;
 using StudioUtil.Dtos;
 using StudioUtil.Extensions;
 using StudioUtil.Utils;
@@ -9,6 +12,7 @@ using Community.VisualStudio.Toolkit.DependencyInjection.Core;
 using Community.VisualStudio.Toolkit.DependencyInjection;
 using Humanizer;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Shell;
 
 namespace StudioUtil.Commands;
 

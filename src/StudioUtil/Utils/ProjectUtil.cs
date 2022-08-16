@@ -1,6 +1,8 @@
-﻿using StudioUtil.Utils.Abstract;
+﻿using System;
+using StudioUtil.Utils.Abstract;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Shell;
 
 namespace StudioUtil.Utils;
 

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -5,6 +6,7 @@ using StudioUtil.Dtos;
 using StudioUtil.Utils.Abstract;
 using EnvDTE;
 using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
 using Project = EnvDTE.Project;
 
 namespace StudioUtil.Utils;

@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
@@ -6,7 +7,7 @@ namespace StudioUtil;
 
 #nullable enable
 
-public partial class CloneAndReplaceDialog
+public partial class CloneAndReplaceDialog : Window
 {
     public CloneAndReplaceDialog()
     {

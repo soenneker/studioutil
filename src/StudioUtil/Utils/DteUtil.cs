@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using StudioUtil.Utils.Abstract;
 using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Nito.AsyncEx;
 

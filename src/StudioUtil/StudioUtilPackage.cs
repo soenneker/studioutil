@@ -1,9 +1,7 @@
-﻿global using Community.VisualStudio.Toolkit;
-global using Microsoft.VisualStudio.Shell;
-global using System;
-global using Task = System.Threading.Tasks.Task;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using StudioUtil.Commands;
 using StudioUtil.Utils;
 using StudioUtil.Utils.Abstract;
@@ -11,6 +9,7 @@ using Community.VisualStudio.Toolkit.DependencyInjection.Microsoft;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Shell;
 
 namespace StudioUtil;
 

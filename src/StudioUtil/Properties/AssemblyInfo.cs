@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
+using System.Resources;
 using System.Runtime.InteropServices;
 using StudioUtil;
 
@@ -10,12 +12,9 @@ using StudioUtil;
 [assembly: AssemblyCopyright(Vsix.Author)]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-
 [assembly: ComVisible(false)]
+[assembly: CLSCompliant(false)]
+[assembly: NeutralResourcesLanguage(Vsix.Language)]
 
 [assembly: AssemblyVersion(Vsix.Version)]
 [assembly: AssemblyFileVersion(Vsix.Version)]
-
-namespace System.Runtime.CompilerServices;
-
-public class IsExternalInit { }
