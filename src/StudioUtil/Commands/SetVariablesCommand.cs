@@ -46,7 +46,7 @@ public class SetVariablesCommand : BaseDICommand
             throw new Exception("Messagebox was early exited");
     }
 
-    private PromptDto Prompt(string? target, string? replacement)
+    private static PromptDto Prompt(string? target, string? replacement)
     {
         var dialog = new SetVariablesDialog
         {
@@ -62,8 +62,8 @@ public class SetVariablesCommand : BaseDICommand
         var dto = new PromptDto
         {
             Result = result.GetValueOrDefault(),
-            Target = dialog.ReplacementInput,
-            Replacement = dialog.TargetInput
+            Target = dialog.TargetInput,
+            Replacement = dialog.ReplacementInput
         };
 
         return dto;

@@ -54,6 +54,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Commands\InsertInheritDocCommand.cs" />
     <Compile Include="Commands\SetVariablesCommand.cs" />
     <Compile Include="Commands\CloneAndReplaceCommand.cs" />
     <Compile Include="Constants\ProjectGuids.cs" />

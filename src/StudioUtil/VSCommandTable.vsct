@@ -18,6 +18,15 @@
 			</Group>
 		</Groups>
 
+        <Buttons>
+            <Button guid="StudioUtil" id="InsertInheritDocCommand" priority="0x0600" type="Button">
+                <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_TEXTEDIT"/>
+                <Strings>
+                    <ButtonText>Insert inheritdoc</ButtonText>
+                </Strings>
+            </Button>
+        </Buttons>
+
 		<!--This section defines the elements the user can interact with, like a menu command or a button
         or combo box in a toolbar. -->
 		<Buttons>
@@ -55,15 +64,23 @@
 		<CommandPlacement guid="StudioUtil" id="grpIdMenuProjectItem" priority="0xF00">
 			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_FOLDERNODE" />
 		</CommandPlacement>
+        <CommandPlacement guid="StudioUtil" id="InsertInheritDocCommand" priority="0x0600">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_DELETE"/>
+        </CommandPlacement>
 	</CommandPlacements>
 
-	<Symbols>
+    <KeyBindings>
+        <KeyBinding guid="StudioUtil" id="InsertInheritDocCommand" mod1="Alt" key1="VK_INSERT" editor="guidVSStd97"/>
+    </KeyBindings>
+
+    <Symbols>
 		<GuidSymbol name="StudioUtil" value="{944e58c7-1767-4692-a75d-858605a5cff6}">
 			<IDSymbol name="grpIdMenuProjectItem" value="0x0319" />
 			<IDSymbol name="menu" value="0x0321" />
 			<IDSymbol name="menuGroup" value="0x0322" />
 			<IDSymbol name="CloneAndReplaceCommand" value="0x0323" />
 			<IDSymbol name="SetVariablesCommand" value="0x0324" />
+            <IDSymbol name="InsertInheritDocCommand" value="0x0325" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>
