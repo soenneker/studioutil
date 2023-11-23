@@ -1,15 +1,26 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Threading;
 using StudioUtil.Utils.Abstract;
 
 namespace StudioUtil.Utils;
 
 #nullable enable
 
+///<inheritdoc cref="ISolutionUtil"/>
 public class SolutionUtil : ISolutionUtil
 {
+    private readonly IDteUtil _dteUtil;
+
+    public SolutionUtil(IDteUtil dteUtil)
+    {
+        _dteUtil = dteUtil;
+    }
+
     public string GetSolutionFolderPath(EnvDTE.Project? folder)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -30,6 +41,17 @@ public class SolutionUtil : ISolutionUtil
         segments.Reverse();
 
         return Path.Combine(new[] { solutionDirectory }.Concat(segments).ToArray());
+    }
+
+    public async ValueTask RefreshSolutionExplorer()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        var dte = await _dteUtil.GetDte();
+
+        dte.Windows.Item(Constants.vsWindowKindSolutionExplorer).Activate();
+
+        dte.Commands.Raise("{1496A755-94DE-11D0-8C3F-00C04FC2AAE2}", 222, null, null);
     }
 
 }

@@ -26,15 +26,17 @@ public class CloneAndReplaceCommand : BaseDICommand
     private readonly INewItemFactory _newItemFactory;
     private readonly ILogger<CloneAndReplaceCommand> _logger;
     private readonly IVariablesUtil _variablesUtil;
+    private readonly ISolutionUtil _solutionUtil;
 
     public CloneAndReplaceCommand(DIToolkitPackage package, IFileUtilSync fileUtil, IDteUtil dteUtil, INewItemFactory newItemFactory, IVariablesUtil variablesUtil,
-        ILogger<CloneAndReplaceCommand> logger) : base(package)
+        ILogger<CloneAndReplaceCommand> logger, ISolutionUtil solutionUtil) : base(package)
     {
         _fileUtil = fileUtil;
         _dteUtil = dteUtil;
         _newItemFactory = newItemFactory;
         _variablesUtil = variablesUtil;
         _logger = logger;
+        _solutionUtil = solutionUtil;
     }
 
     // TODO: this needs breaking up, organization, tests, etc
@@ -91,6 +93,8 @@ public class CloneAndReplaceCommand : BaseDICommand
         // TODO: add support for project types != .NET Core 3+
 
         dte.Solution.AddFromFile(newFilePath);
+
+        await _solutionUtil.RefreshSolutionExplorer();
 
         await base.ExecuteAsync(e);
     }

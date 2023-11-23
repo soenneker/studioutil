@@ -20,7 +20,6 @@ public class ProjectUtil : IProjectUtil
     public async ValueTask<string?> GetRootFolder(EnvDTE.Project? project)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
         if (project == null)
         {
             return null;
