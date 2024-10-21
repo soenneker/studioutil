@@ -31,6 +31,7 @@ public sealed class StudioUtilPackage : MicrosoftDIToolkitPackage<StudioUtilPack
         // Register any commands. They can be registered as a 'Singleton' or 'Scoped'. 
         // 'Transient' will work but in practice it will behave the same as 'Scoped'.
         services.AddSingleton<CloneAndReplaceCommand>();
+        services.AddSingleton<CreateNewFilesFromClipboardCommand>();
         services.AddSingleton<SetVariablesCommand>();
         services.AddSingleton<InsertInheritDocCommand>();
         services.AddSingleton<IDteUtil, DteUtil>();

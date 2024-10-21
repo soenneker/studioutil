@@ -7,7 +7,6 @@ using StudioUtil.Utils.Abstract;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
-using VSLangProj80;
 using Project = EnvDTE.Project;
 
 namespace StudioUtil.Utils;

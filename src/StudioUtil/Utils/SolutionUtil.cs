@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Threading;
 using StudioUtil.Utils.Abstract;
 
 namespace StudioUtil.Utils;
