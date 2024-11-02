@@ -32,6 +32,7 @@ public sealed class StudioUtilPackage : MicrosoftDIToolkitPackage<StudioUtilPack
         // 'Transient' will work but in practice it will behave the same as 'Scoped'.
         services.AddSingleton<CloneAndReplaceCommand>();
         services.AddSingleton<CreateNewFilesFromClipboardCommand>();
+        services.AddSingleton<PasteWithReplaceCommand>();
         services.AddSingleton<SetVariablesCommand>();
         services.AddSingleton<InsertInheritDocCommand>();
         services.AddSingleton<IDteUtil, DteUtil>();

@@ -48,6 +48,12 @@
                     <ButtonText>New files from clipboard</ButtonText>
                 </Strings>
             </Button>
+            <Button guid="StudioUtil" id="PasteWithReplaceCommand" priority="0x1000" type="Button">
+                <Parent guid="StudioUtil" id="menuGroup" />
+                <Strings>
+                    <ButtonText>Paste files with replace</ButtonText>
+                </Strings>
+            </Button>
 		</Buttons>
 
 		<Menus>
@@ -88,6 +94,7 @@
 			<IDSymbol name="SetVariablesCommand" value="0x0324" />
             <IDSymbol name="InsertInheritDocCommand" value="0x0325" />
             <IDSymbol name="CreateNewFilesFromClipboardCommand" value="0x0326" />
+            <IDSymbol name="PasteWithReplaceCommand" value="0x0327" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>

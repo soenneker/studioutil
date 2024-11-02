@@ -54,7 +54,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Commands\CreateNewFilesFromCipboardCommand.cs" />
+    <Compile Include="Commands\CreateNewFilesFromClipboardCommand.cs" />
+    <Compile Include="Commands\PasteWithReplaceCommand.cs" />
     <Compile Include="Commands\InsertInheritDocCommand.cs" />
     <Compile Include="Commands\SetVariablesCommand.cs" />
     <Compile Include="Commands\CloneAndReplaceCommand.cs" />
