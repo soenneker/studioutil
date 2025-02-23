@@ -35,6 +35,8 @@ public sealed class StudioUtilPackage : MicrosoftDIToolkitPackage<StudioUtilPack
         services.AddSingleton<PasteWithReplaceCommand>();
         services.AddSingleton<SetVariablesCommand>();
         services.AddSingleton<InsertInheritDocCommand>();
+        services.AddSingleton<DownloadFileCommand>();
+
         services.AddSingleton<IDteUtil, DteUtil>();
 
         services.TryAddSingleton<ILoggerFactory, LoggerFactory>();

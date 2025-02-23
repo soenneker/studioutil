@@ -28,5 +28,6 @@ namespace StudioUtil
         public const int InsertInheritDocCommand = 0x0325;
         public const int CreateNewFilesFromClipboardCommand = 0x0326;
         public const int PasteWithReplaceCommand = 0x0327;
+        public const int DownloadFileCommand = 0x0328;
     }
 }

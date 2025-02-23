@@ -116,7 +116,7 @@ public class PasteWithReplaceCommand : BaseDICommand
         {
             var files = Clipboard.GetFileDropList();
 
-            foreach (string filePath in files)
+            foreach (var filePath in files)
             {
                 try
                 {
@@ -138,19 +138,19 @@ public class PasteWithReplaceCommand : BaseDICommand
         return dict;
     }
 
-    private void ValidateInput(PromptDto promptDto)
+    private static void ValidateInput(ClonePromptDto clonePromptDto)
     {
-        if (!promptDto.Result)
+        if (!clonePromptDto.Result)
             throw new Exception("Messagebox was closed prematurely");
 
-        if (string.IsNullOrEmpty(promptDto.Replacement))
-            throw new ArgumentNullException(nameof(promptDto.Replacement));
+        if (string.IsNullOrEmpty(clonePromptDto.Replacement))
+            throw new ArgumentNullException(nameof(clonePromptDto.Replacement));
 
-        if (string.IsNullOrEmpty(promptDto.Target))
-            throw new ArgumentNullException(nameof(promptDto.Target));
+        if (string.IsNullOrEmpty(clonePromptDto.Target))
+            throw new ArgumentNullException(nameof(clonePromptDto.Target));
     }
 
-    private static PromptDto PromptForFileName(string? target, string? replacement)
+    private static ClonePromptDto PromptForFileName(string? target, string? replacement)
     {
         var dialog = new CloneAndReplaceDialog
         {
@@ -161,7 +161,7 @@ public class PasteWithReplaceCommand : BaseDICommand
 
         var result = dialog.ShowDialog();
 
-        return new PromptDto
+        return new ClonePromptDto
         {
             Result = result.GetValueOrDefault(),
             Target = dialog.TargetInput,

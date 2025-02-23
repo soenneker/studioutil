@@ -1,5 +1,6 @@
 ﻿namespace StudioUtil.Const;
 
+// Cannot change namespace to .Constants 
 public static class ProjectGuids
 {
     public const string ASPNET_5 = "{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}";

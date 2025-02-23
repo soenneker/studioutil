@@ -1,8 +1,6 @@
 ﻿namespace StudioUtil.Dtos;
 
-#nullable enable
-
-public class PromptDto
+public class ClonePromptDto
 {
     public bool Result { get; set; }
 

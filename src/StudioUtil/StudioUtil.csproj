@@ -54,15 +54,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Commands\DownloadFileCommand.cs" />
     <Compile Include="Commands\CreateNewFilesFromClipboardCommand.cs" />
     <Compile Include="Commands\PasteWithReplaceCommand.cs" />
     <Compile Include="Commands\InsertInheritDocCommand.cs" />
     <Compile Include="Commands\SetVariablesCommand.cs" />
     <Compile Include="Commands\CloneAndReplaceCommand.cs" />
-    <Compile Include="Constants\ProjectGuids.cs" />
+    <Compile Include="Const\ProjectGuids.cs" />
+    <Compile Include="Dtos\DownloadFileDto.cs" />
     <Compile Include="Dtos\NewItem.cs" />
-    <Compile Include="Dtos\PromptDto.cs" />
+    <Compile Include="Dtos\ClonePromptDto.cs" />
     <Compile Include="Extensions\ListStringExtensions.cs" />
+    <Compile Include="DownloadFileDialog.xaml.cs">
+      <DependentUpon>DownloadFileDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SetVariablesDialog.xaml.cs">
       <DependentUpon>SetVariablesDialog.xaml</DependentUpon>
     </Compile>
@@ -152,6 +157,10 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Page Include="DownloadFileDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="SetVariablesDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

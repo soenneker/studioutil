@@ -40,7 +40,7 @@ namespace StudioUtil.Utils
 
         public static bool GetUseVsTheme(UIElement element)
         {
-            return _isUsingVsTheme.TryGetValue(element, out bool value) && value;
+            return _isUsingVsTheme.TryGetValue(element, out var value) && value;
         }
 
         private static ResourceDictionary BuildThemeResources()
@@ -127,7 +127,7 @@ namespace StudioUtil.Utils
             //If we're themed now and we're something with a background property, reset it
             if (GetUseVsTheme(control) && control is Control c)
             {
-                if (_originalBackgrounds.TryGetValue(control, out object background))
+                if (_originalBackgrounds.TryGetValue(control, out var background))
                 {
                     c.SetValue(Control.BackgroundProperty, background);
                 }

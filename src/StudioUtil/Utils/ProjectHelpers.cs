@@ -32,13 +32,13 @@ public static class ProjectHelpers
 
     public static IWpfTextView GetCurentTextView()
     {
-        IComponentModel componentModel = GetComponentModel();
+        var componentModel = GetComponentModel();
 
         if (componentModel == null) 
             return null;
 
-        IVsEditorAdaptersFactoryService editorAdapter = componentModel.GetService<IVsEditorAdaptersFactoryService>();
-        IVsTextView nativeView = GetCurrentNativeTextView();
+        var editorAdapter = componentModel.GetService<IVsEditorAdaptersFactoryService>();
+        var nativeView = GetCurrentNativeTextView();
 
         if (nativeView != null)
             return editorAdapter.GetWpfTextView(nativeView);
@@ -53,7 +53,7 @@ public static class ProjectHelpers
         var textManager = (IVsTextManager)ServiceProvider.GlobalProvider.GetService(typeof(SVsTextManager));
         Assumes.Present(textManager);
 
-        textManager.GetActiveView(1, null, out IVsTextView activeView);
+        textManager.GetActiveView(1, null, out var activeView);
         return activeView;
     }
 

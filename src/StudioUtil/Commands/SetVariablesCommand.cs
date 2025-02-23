@@ -40,13 +40,13 @@ public class SetVariablesCommand : BaseDICommand
         await base.ExecuteAsync(e);
     }
 
-    private static void ValidateInput(PromptDto promptDto)
+    private static void ValidateInput(ClonePromptDto clonePromptDto)
     {
-        if (!promptDto.Result)
+        if (!clonePromptDto.Result)
             throw new Exception("Messagebox was early exited");
     }
 
-    private static PromptDto Prompt(string? target, string? replacement)
+    private static ClonePromptDto Prompt(string? target, string? replacement)
     {
         var dialog = new SetVariablesDialog
         {
@@ -59,7 +59,7 @@ public class SetVariablesCommand : BaseDICommand
         
         var result = dialog.ShowDialog();
 
-        var dto = new PromptDto
+        var dto = new ClonePromptDto
         {
             Result = result.GetValueOrDefault(),
             Target = dialog.TargetInput,

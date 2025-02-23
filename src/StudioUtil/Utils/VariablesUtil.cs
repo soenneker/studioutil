@@ -27,7 +27,7 @@ public class VariablesUtil : IVariablesUtil
 
     public string? Get(string key)
     {
-       var success = _variables.TryGetValue(key, out string value);
+       var success = _variables.TryGetValue(key, out var value);
 
        return success ? value : null;
     }

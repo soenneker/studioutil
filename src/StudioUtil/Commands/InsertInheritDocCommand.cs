@@ -44,7 +44,7 @@ public class InsertInheritDocCommand : BaseDICommand
 
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
-        IWpfTextView view = ProjectHelpers.GetCurentTextView();
+        var view = ProjectHelpers.GetCurentTextView();
 
         if (view != null)
         {
@@ -57,7 +57,7 @@ public class InsertInheritDocCommand : BaseDICommand
     }
     private static string? GetNextLine(IWpfTextView view)
     {
-        int caretLineNumber = view.TextSnapshot.GetLineNumberFromPosition(view.Caret.Position.BufferPosition);
+        var caretLineNumber = view.TextSnapshot.GetLineNumberFromPosition(view.Caret.Position.BufferPosition);
 
         var lines = view.TextSnapshot.Lines.ToList();
 
@@ -80,7 +80,7 @@ public class InsertInheritDocCommand : BaseDICommand
         {
             dte.UndoContext.Open("Insert text");
 
-            using (Microsoft.VisualStudio.Text.ITextEdit edit = view.TextBuffer.CreateEdit())
+            using (var edit = view.TextBuffer.CreateEdit())
             {
                 if (!view.Selection.IsEmpty)
                 {

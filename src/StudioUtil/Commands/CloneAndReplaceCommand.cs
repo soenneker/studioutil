@@ -99,19 +99,19 @@ public class CloneAndReplaceCommand : BaseDICommand
         await base.ExecuteAsync(e);
     }
 
-    private void ValidateInput(PromptDto promptDto)
+    private static void ValidateInput(ClonePromptDto clonePromptDto)
     {
-        if (!promptDto.Result)
+        if (!clonePromptDto.Result)
             throw new Exception("Messagebox was early exited");
 
-        if (string.IsNullOrEmpty(promptDto.Replacement))
-            throw new ArgumentNullException(nameof(promptDto.Replacement));
+        if (string.IsNullOrEmpty(clonePromptDto.Replacement))
+            throw new ArgumentNullException(nameof(clonePromptDto.Replacement));
 
-        if (string.IsNullOrEmpty(promptDto.Target))
-            throw new ArgumentNullException(nameof(promptDto.Target));
+        if (string.IsNullOrEmpty(clonePromptDto.Target))
+            throw new ArgumentNullException(nameof(clonePromptDto.Target));
     }
 
-    private static PromptDto PromptForFileName(string? target, string? replacement)
+    private static ClonePromptDto PromptForFileName(string? target, string? replacement)
     {
         var dialog = new CloneAndReplaceDialog
         {
@@ -124,7 +124,7 @@ public class CloneAndReplaceCommand : BaseDICommand
         
         var result = dialog.ShowDialog();
 
-        var dto = new PromptDto
+        var dto = new ClonePromptDto
         {
             Result = result.GetValueOrDefault(),
             Target = dialog.TargetInput,

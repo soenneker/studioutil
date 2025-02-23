@@ -2,8 +2,6 @@
 
 namespace StudioUtil.Dtos;
 
-#nullable enable
-
 public record NewItem
 {
     public string? Directory { get; set; }
