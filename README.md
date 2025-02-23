@@ -1,6 +1,6 @@
 # <img src="src/StudioUtil/Resources/logo.png" width=30> StudioUtil
 
-A Visual Studio extension to ease development, with miscellaneous tools like fluent file cloning.
+A Visual Studio extension to ease development.
 
 Download from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=soenneker.StudioUtil), or from within `Visual Studio -> Extensions -> Manage Extensions`
 

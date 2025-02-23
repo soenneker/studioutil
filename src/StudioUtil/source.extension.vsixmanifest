@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="StudioUtil.781b8e24-c81a-4b9e-bbcb-7b53602f6b10" Version="1.5" Language="en-US" Publisher="Jake Soenneker" />
+        <Identity Id="StudioUtil.781b8e24-c81a-4b9e-bbcb-7b53602f6b10" Version="1.6" Language="en-US" Publisher="Jake Soenneker" />
         <DisplayName>StudioUtil</DisplayName>
         <Description xml:space="preserve">A Visual Studio extension to ease development, with miscellaneous tools like fluent file cloning.</Description>
         <MoreInfo>https://github.com/soenneker/studioutil</MoreInfo>
