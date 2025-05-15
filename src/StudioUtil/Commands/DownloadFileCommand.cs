@@ -99,7 +99,7 @@ public class DownloadFileCommand : BaseDICommand
                 throw new InvalidOperationException("Target project or folder is null.");
             }
 
-            string? filePath = target.ProjectItem?.GetFileName();
+            var filePath = target.ProjectItem?.GetFileName();
 
             // Handle the case where the project is a directory-based selection
             if (string.IsNullOrEmpty(filePath))
