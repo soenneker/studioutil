@@ -192,4 +192,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-</Project>
+<PropertyGroup xmlns=""><ContinuousIntegrationBuild>true</ContinuousIntegrationBuild></PropertyGroup></Project>
