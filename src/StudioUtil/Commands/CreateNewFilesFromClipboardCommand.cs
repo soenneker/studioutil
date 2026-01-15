@@ -25,6 +25,17 @@ namespace StudioUtil.Commands;
 [Command(PackageIds.CreateNewFilesFromClipboardCommand)]
 public class CreateNewFilesFromClipboardCommand : BaseDICommand
 {
+    private static readonly char[] _lineSplitChars = ['\r', '\n'];
+
+    private static readonly Regex _typeKeywordRegex =
+        new(@"\b(class|struct|record|interface|enum|delegate)\b", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex _typeNameRegex =
+        new(@"\b(class|struct|record|interface|enum|delegate)\s+([\w\d_]+)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex _namespaceRegex =
+        new(@"^\s*namespace\s+", RegexOptions.Multiline | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private readonly IFileUtilSync _fileUtil;
     private readonly IDteUtil _dteUtil;
     private readonly INewItemFactory _newItemFactory;
@@ -102,21 +113,21 @@ public class CreateNewFilesFromClipboardCommand : BaseDICommand
     {
         _logger.LogInformation("Splitting clipboard content into top-level type definitions.");
 
-        var lines = clipboardText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = clipboardText.Split(_lineSplitChars, StringSplitOptions.RemoveEmptyEntries);
         var definitions = new List<string>();
         var currentBlock = new List<string>();
         var braceDepth = 0;
         var inType = false;
-
-        var typePattern = new Regex(@"\b(class|struct|record|interface|enum|delegate)\b");
+        var sawOpenBrace = false;
 
         foreach (var line in lines)
         {
-            if (!inType && typePattern.IsMatch(line))
+            if (!inType && _typeKeywordRegex.IsMatch(line))
             {
                 inType = true;
                 braceDepth = 0;
                 currentBlock.Clear();
+                sawOpenBrace = false;
             }
 
             if (inType)
@@ -129,7 +140,10 @@ public class CreateNewFilesFromClipboardCommand : BaseDICommand
                     else if (c == '}') braceDepth--;
                 }
 
-                if (braceDepth == 0 && (line.Trim().EndsWith(";") || currentBlock.Any(l => l.Contains("{"))))
+                if (!sawOpenBrace && line.IndexOf('{') >= 0)
+                    sawOpenBrace = true;
+
+                if (braceDepth == 0 && (EndsWithSemicolon(line) || sawOpenBrace))
                 {
                     definitions.Add(string.Join(Environment.NewLine, currentBlock));
                     inType = false;
@@ -140,11 +154,23 @@ public class CreateNewFilesFromClipboardCommand : BaseDICommand
         return definitions;
     }
 
+    private static bool EndsWithSemicolon(string line)
+    {
+        for (var i = line.Length - 1; i >= 0; i--)
+        {
+            char c = line[i];
+            if (!char.IsWhiteSpace(c))
+                return c == ';';
+        }
+
+        return false;
+    }
+
     private async Task CreateFileForDefinitionAsync(DTE2? dte, string definition, string directory)
     {
         try
         {
-            var match = Regex.Match(definition, @"\b(class|struct|record|interface|enum|delegate)\s+([\w\d_]+)");
+            Match match = _typeNameRegex.Match(definition);
 
             if (!match.Success)
             {
@@ -158,7 +184,7 @@ public class CreateNewFilesFromClipboardCommand : BaseDICommand
             var usings = GetInferredUsings(definition);
             var content = new List<string>(usings) { "" };
 
-            if (!Regex.IsMatch(definition, @"^\s*namespace\s+", RegexOptions.Multiline))
+            if (!_namespaceRegex.IsMatch(definition))
             {
                 var namespaceName = await GetNamespaceFromPath(directory);
                 content.Add($"namespace {namespaceName};");
