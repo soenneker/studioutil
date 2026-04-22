@@ -1,195 +1,210 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
-    <LangVersion>latest</LangVersion>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectTypeGuids>{82b43b9b-a64c-4715-b499-d71e9ca2bd60};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <ProjectGuid>{1C0E61E6-E03E-4D4C-A3D0-EFDA3E7B6A54}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>StudioUtil</RootNamespace>
-    <AssemblyName>StudioUtil</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
-    <GeneratePkgDefFile>true</GeneratePkgDefFile>
-    <UseCodebase>true</UseCodebase>
-    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
-    <IncludeDebugSymbolsInVSIXContainer>true</IncludeDebugSymbolsInVSIXContainer>
-    <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
-    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
-    <CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
-    <StartAction>Program</StartAction>
-    <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
-    <StartArguments>/rootsuffix Exp</StartArguments>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="Commands\DownloadFileCommand.cs" />
-    <Compile Include="Commands\CreateNewFilesFromClipboardCommand.cs" />
-    <Compile Include="Commands\PasteWithReplaceCommand.cs" />
-    <Compile Include="Commands\InsertInheritDocCommand.cs" />
-    <Compile Include="Commands\SetVariablesCommand.cs" />
-    <Compile Include="Commands\CloneAndReplaceCommand.cs" />
-    <Compile Include="Const\ProjectGuids.cs" />
-    <Compile Include="Dtos\DownloadFileDto.cs" />
-    <Compile Include="Dtos\NewItem.cs" />
-    <Compile Include="Dtos\ClonePromptDto.cs" />
-    <Compile Include="Extensions\ListStringExtensions.cs" />
-    <Compile Include="DownloadFileDialog.xaml.cs">
-      <DependentUpon>DownloadFileDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SetVariablesDialog.xaml.cs">
-      <DependentUpon>SetVariablesDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="CloneAndReplaceDialog.xaml.cs">
-      <DependentUpon>CloneAndReplaceDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Utils\Abstract\INewItemFactory.cs" />
-    <Compile Include="Utils\Abstract\IVariablesUtil.cs" />
-    <Compile Include="Utils\NewItemFactory.cs" />
-    <Compile Include="Utils\Abstract\IDteUtil.cs" />
-    <Compile Include="Utils\Abstract\IFileUtilSync.cs" />
-    <Compile Include="Utils\Abstract\ISolutionUtil.cs" />
-    <Compile Include="Utils\Abstract\IProjectUtil.cs" />
-    <Compile Include="Utils\DteUtil.cs" />
-    <Compile Include="Utils\FileUtilSync.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StudioUtilPackage.cs" />
-    <Compile Include="source.extension.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>source.extension.vsixmanifest</DependentUpon>
-    </Compile>
-    <Compile Include="Utils\ProjectHelpers.cs" />
-    <Compile Include="Utils\ProjectUtil.cs" />
-    <Compile Include="Utils\SolutionUtil.cs" />
-    <Compile Include="Utils\VariablesUtil.cs" />
-    <Compile Include="Utils\VsTheme.cs" />
-    <Compile Include="VSCommandTable.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>VSCommandTable.vsct</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="..\..\LICENSE">
-      <Link>Resources\LICENSE</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-    <None Include="..\..\README.md">
-      <Link>README.md</Link>
-    </None>
-    <None Include="source.extension.vsixmanifest">
-      <SubType>Designer</SubType>
-      <Generator>VsixManifestGenerator</Generator>
-      <LastGenOutput>source.extension.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <VSCTCompile Include="VSCommandTable.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-      <Generator>VsctGenerator</Generator>
-      <LastGenOutput>VSCommandTable.cs</LastGenOutput>
-    </VSCTCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="System" />
-    <Reference Include="System.Design" />
-    <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xaml" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="WindowsBase" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Community.VisualStudio.Toolkit.DependencyInjection.Microsoft.17">
-      <Version>17.0.27</Version>
-    </PackageReference>
-    <PackageReference Include="Community.VisualStudio.VSCT" Version="16.0.29.6" PrivateAssets="all" />
-    <PackageReference Include="Humanizer.Core">
-      <Version>2.14.1</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp">
-      <Version>4.14.0</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging">
-      <Version>5.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2094">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Nito.AsyncEx">
-      <Version>5.1.2</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog">
-      <Version>2.11.0</Version>
-    </PackageReference>
-    <PackageReference Include="System.Text.Json">
-      <Version>9.0.5</Version>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="DownloadFileDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="SetVariablesDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="CloneAndReplaceDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\icon.png" />
-    <Content Include="Resources\logo.png">
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+<ns0:Project xmlns:ns0="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="15.0" DefaultTargets="Build">
+    <ns0:PropertyGroup>
+        <ns0:VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</ns0:VSToolsPath>
+        <ns0:LangVersion>latest</ns0:LangVersion>
+        <ns0:TargetFrameworkProfile />
+    </ns0:PropertyGroup>
+
+    <ns0:PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+        <ns0:Nullable>enable</ns0:Nullable>
+    </ns0:PropertyGroup>
+
+    <ns0:PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+        <ns0:Nullable>enable</ns0:Nullable>
+    </ns0:PropertyGroup>
+
+    <ns0:Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <ns0:PropertyGroup>
+        <ns0:Configuration Condition=" '$(Configuration)' == '' ">Debug</ns0:Configuration>
+        <ns0:Platform Condition=" '$(Platform)' == '' ">AnyCPU</ns0:Platform>
+        <ns0:SchemaVersion>2.0</ns0:SchemaVersion>
+        <ns0:ProjectTypeGuids>{82b43b9b-a64c-4715-b499-d71e9ca2bd60};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ns0:ProjectTypeGuids>
+        <ns0:ProjectGuid>{1C0E61E6-E03E-4D4C-A3D0-EFDA3E7B6A54}</ns0:ProjectGuid>
+        <ns0:OutputType>Library</ns0:OutputType>
+        <ns0:AppDesignerFolder>Properties</ns0:AppDesignerFolder>
+        <ns0:RootNamespace>StudioUtil</ns0:RootNamespace>
+        <ns0:AssemblyName>StudioUtil</ns0:AssemblyName>
+        <ns0:TargetFrameworkVersion>v4.8.1</ns0:TargetFrameworkVersion>
+        <ns0:GeneratePkgDefFile>true</ns0:GeneratePkgDefFile>
+        <ns0:UseCodebase>true</ns0:UseCodebase>
+        <ns0:IncludeAssemblyInVSIXContainer>true</ns0:IncludeAssemblyInVSIXContainer>
+        <ns0:IncludeDebugSymbolsInVSIXContainer>true</ns0:IncludeDebugSymbolsInVSIXContainer>
+        <ns0:IncludeDebugSymbolsInLocalVSIXDeployment>false</ns0:IncludeDebugSymbolsInLocalVSIXDeployment>
+        <ns0:CopyBuildOutputToOutputDirectory>true</ns0:CopyBuildOutputToOutputDirectory>
+        <ns0:CopyOutputSymbolsToOutputDirectory>true</ns0:CopyOutputSymbolsToOutputDirectory>
+        <ns0:StartAction>Program</ns0:StartAction>
+        <ns0:StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</ns0:StartProgram>
+        <ns0:StartArguments>/rootsuffix Exp</ns0:StartArguments>
+    </ns0:PropertyGroup>
+
+    <ns0:PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <ns0:DebugSymbols>true</ns0:DebugSymbols>
+        <ns0:DebugType>full</ns0:DebugType>
+        <ns0:Optimize>false</ns0:Optimize>
+        <ns0:OutputPath>bin\Debug\</ns0:OutputPath>
+        <ns0:DefineConstants>DEBUG;TRACE</ns0:DefineConstants>
+        <ns0:ErrorReport>prompt</ns0:ErrorReport>
+        <ns0:WarningLevel>4</ns0:WarningLevel>
+        <ns0:Nullable>enable</ns0:Nullable>
+    </ns0:PropertyGroup>
+
+    <ns0:PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <ns0:DebugType>pdbonly</ns0:DebugType>
+        <ns0:Optimize>true</ns0:Optimize>
+        <ns0:OutputPath>bin\Release\</ns0:OutputPath>
+        <ns0:DefineConstants>TRACE</ns0:DefineConstants>
+        <ns0:ErrorReport>prompt</ns0:ErrorReport>
+        <ns0:WarningLevel>4</ns0:WarningLevel>
+        <ns0:Nullable>enable</ns0:Nullable>
+    </ns0:PropertyGroup>
+
+    <ns0:ItemGroup>
+        <ns0:Compile Include="Commands\DownloadFileCommand.cs" />
+        <ns0:Compile Include="Commands\CreateNewFilesFromClipboardCommand.cs" />
+        <ns0:Compile Include="Commands\PasteWithReplaceCommand.cs" />
+        <ns0:Compile Include="Commands\InsertInheritDocCommand.cs" />
+        <ns0:Compile Include="Commands\SetVariablesCommand.cs" />
+        <ns0:Compile Include="Commands\CloneAndReplaceCommand.cs" />
+        <ns0:Compile Include="Const\ProjectGuids.cs" />
+        <ns0:Compile Include="Dtos\DownloadFileDto.cs" />
+        <ns0:Compile Include="Dtos\NewItem.cs" />
+        <ns0:Compile Include="Dtos\ClonePromptDto.cs" />
+        <ns0:Compile Include="Extensions\ListStringExtensions.cs" />
+        <ns0:Compile Include="DownloadFileDialog.xaml.cs">
+            <ns0:DependentUpon>DownloadFileDialog.xaml</ns0:DependentUpon>
+        </ns0:Compile>
+        <ns0:Compile Include="SetVariablesDialog.xaml.cs">
+            <ns0:DependentUpon>SetVariablesDialog.xaml</ns0:DependentUpon>
+        </ns0:Compile>
+        <ns0:Compile Include="CloneAndReplaceDialog.xaml.cs">
+            <ns0:DependentUpon>CloneAndReplaceDialog.xaml</ns0:DependentUpon>
+        </ns0:Compile>
+        <ns0:Compile Include="Utils\Abstract\INewItemFactory.cs" />
+        <ns0:Compile Include="Utils\Abstract\IVariablesUtil.cs" />
+        <ns0:Compile Include="Utils\NewItemFactory.cs" />
+        <ns0:Compile Include="Utils\Abstract\IDteUtil.cs" />
+        <ns0:Compile Include="Utils\Abstract\IFileUtilSync.cs" />
+        <ns0:Compile Include="Utils\Abstract\ISolutionUtil.cs" />
+        <ns0:Compile Include="Utils\Abstract\IProjectUtil.cs" />
+        <ns0:Compile Include="Utils\DteUtil.cs" />
+        <ns0:Compile Include="Utils\FileUtilSync.cs" />
+        <ns0:Compile Include="Properties\AssemblyInfo.cs" />
+        <ns0:Compile Include="StudioUtilPackage.cs" />
+        <ns0:Compile Include="source.extension.cs">
+            <ns0:AutoGen>True</ns0:AutoGen>
+            <ns0:DesignTime>True</ns0:DesignTime>
+            <ns0:DependentUpon>source.extension.vsixmanifest</ns0:DependentUpon>
+        </ns0:Compile>
+        <ns0:Compile Include="Utils\ProjectHelpers.cs" />
+        <ns0:Compile Include="Utils\ProjectUtil.cs" />
+        <ns0:Compile Include="Utils\SolutionUtil.cs" />
+        <ns0:Compile Include="Utils\VariablesUtil.cs" />
+        <ns0:Compile Include="Utils\VsTheme.cs" />
+        <ns0:Compile Include="VSCommandTable.cs">
+            <ns0:AutoGen>True</ns0:AutoGen>
+            <ns0:DesignTime>True</ns0:DesignTime>
+            <ns0:DependentUpon>VSCommandTable.vsct</ns0:DependentUpon>
+        </ns0:Compile>
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup>
+        <ns0:Content Include="..\..\LICENSE">
+            <ns0:Link>Resources\LICENSE</ns0:Link>
+            <ns0:IncludeInVSIX>true</ns0:IncludeInVSIX>
+        </ns0:Content>
+        <ns0:None Include="..\..\README.md">
+            <ns0:Link>README.md</ns0:Link>
+        </ns0:None>
+        <ns0:None Include="source.extension.vsixmanifest">
+            <ns0:SubType>Designer</ns0:SubType>
+            <ns0:Generator>VsixManifestGenerator</ns0:Generator>
+            <ns0:LastGenOutput>source.extension.cs</ns0:LastGenOutput>
+        </ns0:None>
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup>
+        <ns0:VSCTCompile Include="VSCommandTable.vsct">
+            <ns0:ResourceName>Menus.ctmenu</ns0:ResourceName>
+            <ns0:Generator>VsctGenerator</ns0:Generator>
+            <ns0:LastGenOutput>VSCommandTable.cs</ns0:LastGenOutput>
+        </ns0:VSCTCompile>
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup>
+        <ns0:Reference Include="PresentationCore" />
+        <ns0:Reference Include="PresentationFramework" />
+        <ns0:Reference Include="System" />
+        <ns0:Reference Include="System.Design" />
+        <ns0:Reference Include="System.ComponentModel.Composition" />
+        <ns0:Reference Include="System.Windows.Forms" />
+        <ns0:Reference Include="System.Xaml" />
+        <ns0:Reference Include="System.Xml" />
+        <ns0:Reference Include="System.Xml.Linq" />
+        <ns0:Reference Include="WindowsBase" />
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup>
+        <ns0:PackageReference Include="Community.VisualStudio.Toolkit.DependencyInjection.Microsoft.17">
+            <ns0:Version>17.0.27</ns0:Version>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="Community.VisualStudio.VSCT" Version="16.0.29.6" PrivateAssets="all" />
+        <ns0:PackageReference Include="Humanizer.Core">
+            <ns0:Version>2.14.1</ns0:Version>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="Microsoft.CodeAnalysis.CSharp">
+            <ns0:Version>4.14.0</ns0:Version>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="Microsoft.Extensions.Logging">
+            <ns0:Version>5.0.0</ns0:Version>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2094">
+            <ns0:IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</ns0:IncludeAssets>
+            <ns0:PrivateAssets>all</ns0:PrivateAssets>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="Nito.AsyncEx">
+            <ns0:Version>5.1.2</ns0:Version>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="Serilog">
+            <ns0:Version>2.11.0</ns0:Version>
+        </ns0:PackageReference>
+        <ns0:PackageReference Include="System.Text.Json">
+            <ns0:Version>9.0.5</ns0:Version>
+        </ns0:PackageReference>
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup>
+        <ns0:Page Include="DownloadFileDialog.xaml">
+            <ns0:Generator>MSBuild:Compile</ns0:Generator>
+            <ns0:SubType>Designer</ns0:SubType>
+        </ns0:Page>
+        <ns0:Page Include="SetVariablesDialog.xaml">
+            <ns0:Generator>MSBuild:Compile</ns0:Generator>
+            <ns0:SubType>Designer</ns0:SubType>
+        </ns0:Page>
+        <ns0:Page Include="CloneAndReplaceDialog.xaml">
+            <ns0:Generator>MSBuild:Compile</ns0:Generator>
+            <ns0:SubType>Designer</ns0:SubType>
+        </ns0:Page>
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup>
+        <ns0:Resource Include="Resources\icon.png" />
+        <ns0:Content Include="Resources\logo.png">
+            <ns0:IncludeInVSIX>true</ns0:IncludeInVSIX>
+        </ns0:Content>
+    </ns0:ItemGroup>
+
+    <ns0:ItemGroup />
+    <ns0:Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+    <ns0:Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
+    <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">
   </Target>
   -->
-<PropertyGroup xmlns=""><ContinuousIntegrationBuild>true</ContinuousIntegrationBuild></PropertyGroup></Project>
+    <PropertyGroup>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+</ns0:Project>
