@@ -7,11 +7,17 @@ using Microsoft.VisualStudio.Shell;
 
 namespace StudioUtil.Utils
 {
+    /// <summary>
+    /// Represents the vs theme.
+    /// </summary>
     public static class VsTheme
     {
         private static readonly Dictionary<UIElement, bool> _isUsingVsTheme = new Dictionary<UIElement, bool>();
         private static readonly Dictionary<UIElement, object> _originalBackgrounds = new Dictionary<UIElement, object>();
 
+        /// <summary>
+        /// The use vs theme property.
+        /// </summary>
         public static DependencyProperty UseVsThemeProperty = DependencyProperty.RegisterAttached("UseVsTheme", typeof(bool), typeof(VsTheme), new PropertyMetadata(false, UseVsThemePropertyChanged));
 
         private static void UseVsThemePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -19,6 +25,11 @@ namespace StudioUtil.Utils
             SetUseVsTheme((UIElement) d, (bool) e.NewValue);
         }
 
+        /// <summary>
+        /// Sets use vs theme.
+        /// </summary>
+        /// <param name="element">The element.</param>
+        /// <param name="value">The value.</param>
         public static void SetUseVsTheme(UIElement element, bool value)
         {
             if (value)
@@ -38,6 +49,11 @@ namespace StudioUtil.Utils
             _isUsingVsTheme[element] = value;
         }
 
+        /// <summary>
+        /// Gets use vs theme.
+        /// </summary>
+        /// <param name="element">The element.</param>
+        /// <returns>A value indicating whether the operation succeeded.</returns>
         public static bool GetUseVsTheme(UIElement element)
         {
             return _isUsingVsTheme.TryGetValue(element, out var value) && value;

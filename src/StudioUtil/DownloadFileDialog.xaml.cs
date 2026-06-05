@@ -7,6 +7,9 @@ namespace StudioUtil;
 
 #nullable enable
 
+/// <summary>
+/// Represents the download file dialog.
+/// </summary>
 public partial class DownloadFileDialog : Window
 {
     public DownloadFileDialog()
@@ -37,8 +40,14 @@ public partial class DownloadFileDialog : Window
         };
     }
 
+    /// <summary>
+    /// Gets or sets target input.
+    /// </summary>
     public string TargetInput => txtTarget.Text.Trim();
 
+    /// <summary>
+    /// The target.
+    /// </summary>
     public string? Target;
 
     private void Button_Click(object sender, RoutedEventArgs e)

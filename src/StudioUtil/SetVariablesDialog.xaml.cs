@@ -7,6 +7,9 @@ namespace StudioUtil;
 
 #nullable enable
 
+/// <summary>
+/// Represents the set variables dialog.
+/// </summary>
 public partial class SetVariablesDialog : Window
 {
     public SetVariablesDialog()
@@ -40,12 +43,24 @@ public partial class SetVariablesDialog : Window
         };
     }
 
+    /// <summary>
+    /// Gets or sets target input.
+    /// </summary>
     public string TargetInput => txtTarget.Text.Trim();
 
+    /// <summary>
+    /// Gets or sets replacement input.
+    /// </summary>
     public string ReplacementInput => txtReplacement.Text.Trim();
 
+    /// <summary>
+    /// The target.
+    /// </summary>
     public string? Target;
 
+    /// <summary>
+    /// The replacement.
+    /// </summary>
     public string? Replacement;
 
     private void Button_Click(object sender, RoutedEventArgs e)

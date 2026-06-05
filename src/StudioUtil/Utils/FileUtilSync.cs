@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace StudioUtil.Utils;
 
+/// <inheritdoc cref="IFileUtilSync"/>
 public class FileUtilSync : IFileUtilSync
 {
     private readonly ILogger<FileUtilSync> _logger;
@@ -16,12 +17,6 @@ public class FileUtilSync : IFileUtilSync
         _logger = logger;
     }
 
-    /// <summary>
-    /// Use this instead of Systems.IO.Path.GetTempFileName()! https://stackoverflow.com/a/50413126
-    /// 1. It creates 0 byte file (so it'll already exist)
-    /// 2. It's slow because it iterates over the file system to (hopefully) find a non-collision
-    /// </summary>
-    /// <returns></returns>
     public string GetTempFileName()
     {
         return Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());

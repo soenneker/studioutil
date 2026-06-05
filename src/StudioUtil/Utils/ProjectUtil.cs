@@ -8,6 +8,7 @@ namespace StudioUtil.Utils;
 
 #nullable enable
 
+/// <inheritdoc cref="IProjectUtil"/>
 public class ProjectUtil : IProjectUtil
 {
     private readonly IDteUtil _dteUtil;

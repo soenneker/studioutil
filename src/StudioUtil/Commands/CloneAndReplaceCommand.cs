@@ -18,6 +18,9 @@ namespace StudioUtil.Commands;
 
 #nullable enable
 
+/// <summary>
+/// Represents the clone and replace command.
+/// </summary>
 [Command(PackageIds.CloneAndReplaceCommand)]
 public class CloneAndReplaceCommand : BaseDICommand
 {

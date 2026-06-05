@@ -13,6 +13,9 @@ namespace StudioUtil.Commands;
 
 #nullable enable
 
+/// <summary>
+/// Represents the set variables command.
+/// </summary>
 [Command(PackageIds.SetVariablesCommand)]
 public class SetVariablesCommand : BaseDICommand
 {

@@ -16,6 +16,9 @@ namespace StudioUtil.Commands;
 
 #nullable enable
 
+/// <summary>
+/// Represents the insert inherit doc command.
+/// </summary>
 [Command(PackageIds.InsertInheritDocCommand)]
 public class InsertInheritDocCommand : BaseDICommand
 {
@@ -28,6 +31,11 @@ public class InsertInheritDocCommand : BaseDICommand
         _dteUtil = dteUtil;
     }
 
+    /// <summary>
+    /// Gets interface from text.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>The result of the operation.</returns>
     public static string? GetInterfaceFromText(string text)
     {
         Regex regex = new(@"(:|,) (I[a-zA-Z]+)", RegexOptions.Compiled);

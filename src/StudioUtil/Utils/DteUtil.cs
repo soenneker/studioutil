@@ -7,6 +7,7 @@ using Nito.AsyncEx;
 
 namespace StudioUtil.Utils;
 
+/// <inheritdoc cref="IDteUtil"/>
 public class DteUtil : IDteUtil
 {
     private readonly AsyncLazy<DTE2> _dte = new(async () =>

@@ -22,6 +22,9 @@ namespace StudioUtil.Commands;
 
 #nullable enable
 
+/// <summary>
+/// Represents the create new files from clipboard command.
+/// </summary>
 [Command(PackageIds.CreateNewFilesFromClipboardCommand)]
 public class CreateNewFilesFromClipboardCommand : BaseDICommand
 {

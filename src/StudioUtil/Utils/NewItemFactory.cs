@@ -13,6 +13,7 @@ namespace StudioUtil.Utils;
 
 #nullable enable
 
+/// <inheritdoc cref="INewItemFactory"/>
 public class NewItemFactory : INewItemFactory
 {
     private readonly ISolutionUtil _solutionUtil;

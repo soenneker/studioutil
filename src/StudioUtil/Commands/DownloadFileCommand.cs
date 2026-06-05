@@ -21,6 +21,9 @@ namespace StudioUtil.Commands;
 
 #nullable enable
 
+/// <summary>
+/// Represents the download file command.
+/// </summary>
 [Command(PackageIds.DownloadFileCommand)]
 public class DownloadFileCommand : BaseDICommand
 {
@@ -81,6 +84,10 @@ public class DownloadFileCommand : BaseDICommand
         _logger.LogInformation("Finished downloading file.");
     }
 
+    /// <summary>
+    /// Gets target directory.
+    /// </summary>
+    /// <returns>A task containing the result of the operation.</returns>
     public async ValueTask<string> GetTargetDirectory()
     {
         try

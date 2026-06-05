@@ -12,9 +12,17 @@ namespace StudioUtil.Utils;
 
 #nullable enable
 
+/// <summary>
+/// Represents the project helpers.
+/// </summary>
 public static class ProjectHelpers
 {
 
+    /// <summary>
+    /// Gets file name.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <returns>The result of the operation.</returns>
     public static string? GetFileName(this ProjectItem item)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -30,6 +38,10 @@ public static class ProjectHelpers
         }
     }
 
+    /// <summary>
+    /// Gets curent text view.
+    /// </summary>
+    /// <returns>The result of the operation.</returns>
     public static IWpfTextView GetCurentTextView()
     {
         var componentModel = GetComponentModel();
@@ -62,6 +74,12 @@ public static class ProjectHelpers
         return (IComponentModel)Package.GetGlobalService(typeof(SComponentModel));
     }
 
+    /// <summary>
+    /// Executes the is kind operation.
+    /// </summary>
+    /// <param name="project">The project.</param>
+    /// <param name="kindGuids">The kind guids.</param>
+    /// <returns>A value indicating whether the operation succeeded.</returns>
     public static bool IsKind(this Project project, params string[] kindGuids)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -77,6 +95,12 @@ public static class ProjectHelpers
         return false;
     }
 
+    /// <summary>
+    /// Executes the is kind operation.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <param name="kindGuids">The kind guids.</param>
+    /// <returns>A value indicating whether the operation succeeded.</returns>
     public static bool IsKind(this ProjectItem projectItem, params string[] kindGuids)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

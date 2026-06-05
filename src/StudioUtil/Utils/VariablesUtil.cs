@@ -5,6 +5,7 @@ namespace StudioUtil.Utils;
 
 #nullable enable
 
+/// <inheritdoc cref="IVariablesUtil"/>
 public class VariablesUtil : IVariablesUtil
 {
     private readonly Dictionary<string, string> _variables;

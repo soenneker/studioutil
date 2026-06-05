@@ -13,6 +13,9 @@ using Microsoft.VisualStudio.Shell;
 
 namespace StudioUtil;
 
+/// <summary>
+/// Represents the studio util package.
+/// </summary>
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [InstalledProductRegistration(Vsix.Name, Vsix.Description, Vsix.Version)]
 [ProvideMenuResource("Menus.ctmenu", 1)]

@@ -19,6 +19,9 @@ namespace StudioUtil.Commands;
 
 #nullable enable
 
+/// <summary>
+/// Represents the paste with replace command.
+/// </summary>
 [Command(PackageIds.PasteWithReplaceCommand)]
 public class PasteWithReplaceCommand : BaseDICommand
 {
