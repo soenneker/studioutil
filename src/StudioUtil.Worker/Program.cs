@@ -17,11 +17,13 @@ internal static class Program
         var files = services.GetRequiredService<FileCommands>();
         Console.InputEncoding = new UTF8Encoding(false);
         Console.OutputEncoding = new UTF8Encoding(false);
+        var protocolInput = Console.In;
+        using var childInput = WorkerStandardInput.IsolateChildProcesses();
         // stdout is exclusively the protocol; test/build output is sent as log events.
         try
         {
             string? line;
-            while ((line = await Console.In.ReadLineAsync()) != null)
+            while ((line = await protocolInput.ReadLineAsync()) != null)
             {
                 var request = JsonUtil.Deserialize(line, WorkerJsonContext.Default.WorkerMessage) ??
                               throw new InvalidDataException("Empty request.");

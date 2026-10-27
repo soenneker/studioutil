@@ -6,6 +6,29 @@ namespace StudioUtil.Testing.Tests;
 public sealed class RunnerBufferTests
 {
     [Test]
+    public async Task RunningDurationTicksThenKeepsTheReportedResult()
+    {
+        var test = new TestTreeNode("test", new TestModule("project.csproj", "net11.0", "test.dll"), "1");
+        test.State = "in-progress";
+        await Task.Delay(30);
+        await Assert.That(test.RefreshRunningDuration()).IsTrue();
+        int budget = 0;
+        await Assert.That(test.Capture(ref budget).Duration > 0).IsTrue();
+        test.Apply(new TestNodeUpdate { ExecutionState = "passed", DurationInMilliseconds = 1234 });
+        await Assert.That(test.RefreshRunningDuration()).IsFalse();
+        await Assert.That(test.Capture(ref budget).Duration).IsEqualTo(1234);
+        test.Reset();
+        await Assert.That(test.DurationLabel).IsEqualTo("");
+        test.State = "in-progress";
+        await Task.Delay(30);
+        test.State = "cancelled";
+        double? stopped = test.Capture(ref budget).Duration;
+        await Assert.That(stopped > 0).IsTrue();
+        await Assert.That(test.RefreshRunningDuration()).IsFalse();
+        await Assert.That(test.Capture(ref budget).Duration).IsEqualTo(stopped);
+    }
+
+    [Test]
     public async Task StreamsChunksWithoutCopyingTheWholeLogOnEachAppend()
     {
         string chunk = new('x', 100);

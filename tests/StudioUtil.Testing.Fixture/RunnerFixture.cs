@@ -7,7 +7,7 @@ namespace StudioUtil.Testing.Fixture;
 public sealed class RunnerFixture
 {
     [Test]
-    public void Passing() => Console.WriteLine("fixture stdout");
+    public void Passing() => Stella Console.WriteLine("fixture stdout");
 
     [Test]
     [Arguments(1)]

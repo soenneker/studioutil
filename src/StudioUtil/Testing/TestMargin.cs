@@ -45,7 +45,9 @@ internal sealed class TestMargin : Canvas, IWpfTextViewMargin
         _debounce.Tick += Parse;
         view.TextBuffer.Changed += OnBufferChanged;
         view.LayoutChanged += OnLayoutChanged;
+        view.ZoomLevelChanged += OnZoomLevelChanged;
         view.Closed += OnClosed;
+        Loaded += OnLoaded;
         _debounce.Start();
     }
 
@@ -87,15 +89,20 @@ internal sealed class TestMargin : Canvas, IWpfTextViewMargin
     }
 
     private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e) => Render();
+    private void OnZoomLevelChanged(object sender, ZoomLevelChangedEventArgs e) => Render();
+    private void OnLoaded(object sender, RoutedEventArgs e) => Render();
     private void Render()
     {
-        if (_disposed || _view.IsClosed || _snapshot != _view.TextSnapshot) return;
+        if (_disposed || !IsLoaded || _view.IsClosed || _snapshot != _view.TextSnapshot) return;
         // CodeLens and other editor adornments can relayout while the user chooses an action.
         // Keep the clicked button alive until the menu closes; edits already close it above.
         if (_menu?.IsOpen == true) return;
         Children.Clear();
         var lines = _view.TextViewLines;
         if (lines == null) return;
+        // Text coordinates belong to the zoomed editor surface, not this margin.
+        // Transform the text center before centering the fixed-size gutter button.
+        var editorToMargin = _view.VisualElement.TransformToVisual(this);
         foreach (var declaration in _declarations)
         {
             var point = new SnapshotPoint(_snapshot, declaration.Position);
@@ -103,7 +110,8 @@ internal sealed class TestMargin : Canvas, IWpfTextViewMargin
             var line = lines.GetTextViewLineContainingBufferPosition(point);
             var button = CreateButton(declaration, _snapshot);
             SetLeft(button, 2);
-            SetTop(button, line.TextTop - _view.ViewportTop + Math.Max(0, (line.TextHeight - 18) / 2));
+            var center = editorToMargin.Transform(new Point(0, line.TextTop - _view.ViewportTop + line.TextHeight / 2));
+            SetTop(button, center.Y - button.Height / 2);
             Children.Add(button);
         }
     }
@@ -182,7 +190,9 @@ internal sealed class TestMargin : Canvas, IWpfTextViewMargin
         _parsing?.Cancel();
         _view.TextBuffer.Changed -= OnBufferChanged;
         _view.LayoutChanged -= OnLayoutChanged;
+        _view.ZoomLevelChanged -= OnZoomLevelChanged;
         _view.Closed -= OnClosed;
+        Loaded -= OnLoaded;
         if (_menu != null) _menu.IsOpen = false;
         Children.Clear();
         _tasks.Dispose();

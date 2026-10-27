@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
@@ -21,6 +22,7 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
     private int _passed, _failed, _skipped;
     private string _name;
     private double? _duration;
+    private long? _startedAt;
     private bool _expanded;
     private bool _visible = true;
     private int _count;
@@ -46,7 +48,32 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
     public int TestCount => IsTest ? 1 : _count;
     public string CountLabel => IsTest ? "" : $"{TestCount}";
     public ObservableCollection<TestTreeNode> Children { get; } = new();
-    public string State { get => _state; set { if (_state == value) return; _state = value; _parent?.MarkDirty(); Changed(); Changed(nameof(Label)); Changed(nameof(Symbol)); Changed(nameof(StateLabel)); } }
+    public string State
+    {
+        get => _state;
+        set
+        {
+            if (_state == value) return;
+            if (IsTest)
+            {
+                RefreshRunningDuration();
+                _startedAt = value == "in-progress" ? Stopwatch.GetTimestamp() : null;
+                if (_startedAt.HasValue) _duration = 0;
+                Changed(nameof(DurationLabel));
+            }
+            _state = value;
+            _parent?.MarkDirty();
+            Changed(); Changed(nameof(Label)); Changed(nameof(Symbol)); Changed(nameof(StateLabel));
+        }
+    }
+
+    internal bool RefreshRunningDuration()
+    {
+        if (!_startedAt.HasValue) return false;
+        _duration = (Stopwatch.GetTimestamp() - _startedAt.Value) * 1000.0 / Stopwatch.Frequency;
+        Changed(nameof(DurationLabel));
+        return true;
+    }
     public string StateLabel => State switch { "" or "discovered" or "not-run" => "Not run", "in-progress" => "Running", _ => char.ToUpperInvariant(State[0]) + State.Substring(1) };
     public string Output { get => OutputBuffer.GetText(); private set { OutputBuffer.Clear(); OutputBuffer.Append(value); Changed(); } }
     public int PassedCount => IsTest ? (State == "passed" ? 1 : 0) : _passed;
@@ -133,9 +160,9 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
         Line = update.LineStart ?? Line;
         if (!discovery)
         {
+            State = update.ExecutionState ?? State;
             if (update.DurationInMilliseconds.HasValue && update.DurationInMilliseconds != _duration)
             { _duration = update.DurationInMilliseconds; Changed(nameof(DurationLabel)); Changed(nameof(Label)); }
-            State = update.ExecutionState ?? State;
             if (State is "passed" or "failed" or "error" or "timeout" or "skipped" or "cancelled") LastRunUtc = DateTime.UtcNow;
             var detail = Detail(update);
             if (detail is { Length: > 0 })

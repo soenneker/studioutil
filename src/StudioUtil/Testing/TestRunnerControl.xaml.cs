@@ -23,6 +23,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
 {
     private readonly ObservableCollection<TestTreeNode> _roots = new();
     private readonly Dictionary<string, TestTreeNode> _cases = new(StringComparer.Ordinal);
+    private readonly HashSet<TestTreeNode> _runningTests = new();
     private readonly BlockingCollection<PendingTestUpdate> _pending = new(256);
     private readonly PendingLogBuffer _pendingLogs = new();
     private int _shownTotal = -1, _shownPassed = -1, _shownFailed = -1, _shownSkipped = -1;
@@ -59,6 +60,16 @@ public partial class TestRunnerControl : UserControl, IDisposable
         var menu = new ContextMenu { Style = (Style)Resources["TestGutterMenu"] };
         menu.Items.Add(CreateTestAction("_Run", false, "\uE768"));
         menu.Items.Add(CreateTestAction("_Debug", true, "\uEBE8"));
+        var copy = new MenuItem { Header = "_Copy", Style = (Style)Resources["TestGutterAction"],
+            Icon = new TextBlock { Text = "\uE8C8", FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"), FontSize = 14 } };
+        copy.Click += (_, e) =>
+        {
+            e.Handled = true;
+            if (_contextTest == null) return;
+            try { Clipboard.SetText(_contextTest.Name); }
+            catch (System.Runtime.InteropServices.COMException ex) { Log($"Could not copy test name: {ex.Message}"); Drain(); }
+        };
+        menu.Items.Add(copy);
         Tests.ContextMenu = menu;
         Tests.ItemsSource = _roots;
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Background, (_, _) => Drain(), Dispatcher);
@@ -136,7 +147,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
 
     private void Clear()
     {
-        _roots.Clear(); _cases.Clear(); TestOutput.Clear();
+        _roots.Clear(); _cases.Clear(); _runningTests.Clear(); TestOutput.Clear();
         _expansionBeforeSearch.Clear();
         Tests.ItemsSource = _roots;
         ShowOutput(null);
@@ -356,6 +367,8 @@ public partial class TestRunnerControl : UserControl, IDisposable
         }
         test.UpdateModule(module);
         test.Apply(update, discovery);
+        if (test.State == "in-progress") _runningTests.Add(test);
+        else _runningTests.Remove(test);
         if (ReferenceEquals(Tests.SelectedItem, test)) _outputDirty = true;
     }
 
@@ -459,6 +472,9 @@ public partial class TestRunnerControl : UserControl, IDisposable
     {
         // Large builds and discovery batches must yield to input and layout between updates.
         for (int count = 0; count < 64 && _pending.TryTake(out var item); count++) ApplyUpdate(item.Module, item.Update, item.Discovery);
+        _runningTests.RemoveWhere(static test => !test.RefreshRunningDuration());
+        if (Tests.SelectedItem is TestTreeNode { State: "in-progress" } running)
+            OutputDuration.Text = running.DurationLabel;
         foreach (var root in _roots) root.RefreshGroup();
         if (_outputDirty) { _outputDirty = false; ShowOutput(Tests.SelectedItem as TestTreeNode); }
         string text = _pendingLogs.Drain();
