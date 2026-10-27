@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit" Version="1.76.28" />
+    <PackageReference Include="Microsoft.Testing.Platform.ServerMode.Client.Sources" Version="2.5.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <Compile Include="../../src/StudioUtil.Contracts/TestModule.cs" Link="Production/TestModule.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestProcess.cs" Link="Production/TestProcess.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestProjectBuilder.cs" Link="Production/TestProjectBuilder.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/ITestSession.cs" Link="Production/ITestSession.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestSession.cs" Link="Production/TestSession.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/TestTreeNode.cs" Link="Production/TestTreeNode.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/BoundedTextBuffer.cs" Link="Production/BoundedTextBuffer.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/PendingLogBuffer.cs" Link="Production/PendingLogBuffer.cs" />
+    <PackageReference Include="Soenneker.Utils.File" Version="11.0.2328" />
+    <PackageReference Include="Soenneker.Utils.Directory" Version="11.0.970" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <Compile Include="../../src/StudioUtil/Testing/OutputSourceLink.cs" Link="Production/OutputSourceLink.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/OutputSourceLinks.cs" Link="Production/OutputSourceLinks.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestSessionCache.cs" Link="Production/TestSessionCache.cs" />
+    <Compile Include="../../src/StudioUtil.Contracts/TestSessionSnapshot.cs" Link="Production/TestSessionSnapshot.cs" />
+    <Compile Include="../../src/StudioUtil.Contracts/TestNodeSnapshot.cs" Link="Production/TestNodeSnapshot.cs" />
+    <Compile Include="../../src/StudioUtil.Contracts/TestSourceTarget.cs" Link="Production/TestSourceTarget.cs" />
+    <Compile Include="../../src/StudioUtil.Contracts/TestDeclaration.cs" Link="Production/TestDeclaration.cs" />
+    <ProjectReference Include="../../src/StudioUtil.Worker/StudioUtil.Worker.csproj" ReferenceOutputAssembly="false" />
+    <Compile Include="../../src/StudioUtil.Contracts/TestNodeUpdate.cs" />
+    <Compile Include="../../src/StudioUtil.Contracts/WorkerMessage.cs" />
+    <Compile Include="../../src/StudioUtil.Contracts/FileCommandRequest.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestUpdateMapper.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestSourceDiscovery.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/Worker*.cs" />
+    <PackageReference Include="Soenneker.Utils.Process" Version="11.0.1604" />
+    <PackageReference Include="Soenneker.Hashing.Sha256" Version="4.0.17" />
+    <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2766" />
+    <Compile Include="../../src/StudioUtil.Worker/WorkerJsonContext.cs" />
+  </ItemGroup>
+</Project>

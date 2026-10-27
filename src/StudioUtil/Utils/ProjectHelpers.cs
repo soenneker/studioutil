@@ -42,8 +42,9 @@ public static class ProjectHelpers
     /// Gets curent text view.
     /// </summary>
     /// <returns>The result of the operation.</returns>
-    public static IWpfTextView GetCurentTextView()
+    public static IWpfTextView? GetCurentTextView()
     {
+        ThreadHelper.ThrowIfNotOnUIThread();
         var componentModel = GetComponentModel();
 
         if (componentModel == null) 

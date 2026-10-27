@@ -1,16 +1,16 @@
-﻿using System;
-using System.IO;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
+using MessageBox = System.Windows.MessageBox;
 using Community.VisualStudio.Toolkit;
 using StudioUtil.Dtos;
-using StudioUtil.Extensions;
+using StudioUtil.Testing;
 using StudioUtil.Utils;
 using StudioUtil.Utils.Abstract;
 using Community.VisualStudio.Toolkit.DependencyInjection.Core;
 using Community.VisualStudio.Toolkit.DependencyInjection;
-using Humanizer;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Shell;
 
@@ -24,17 +24,15 @@ namespace StudioUtil.Commands;
 [Command(PackageIds.CloneAndReplaceCommand)]
 public class CloneAndReplaceCommand : BaseDICommand
 {
-    private readonly IFileUtilSync _fileUtil;
     private readonly IDteUtil _dteUtil;
     private readonly INewItemFactory _newItemFactory;
     private readonly ILogger<CloneAndReplaceCommand> _logger;
     private readonly IVariablesUtil _variablesUtil;
     private readonly ISolutionUtil _solutionUtil;
 
-    public CloneAndReplaceCommand(DIToolkitPackage package, IFileUtilSync fileUtil, IDteUtil dteUtil, INewItemFactory newItemFactory, IVariablesUtil variablesUtil,
+    public CloneAndReplaceCommand(DIToolkitPackage package, IDteUtil dteUtil, INewItemFactory newItemFactory, IVariablesUtil variablesUtil,
         ILogger<CloneAndReplaceCommand> logger, ISolutionUtil solutionUtil) : base(package)
     {
-        _fileUtil = fileUtil;
         _dteUtil = dteUtil;
         _newItemFactory = newItemFactory;
         _variablesUtil = variablesUtil;
@@ -42,78 +40,33 @@ public class CloneAndReplaceCommand : BaseDICommand
         _solutionUtil = solutionUtil;
     }
 
-    // TODO: this needs breaking up, organization, tests, etc
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
-        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-        _logger.LogInformation("Beginning to log");
-
-        var dte = await _dteUtil.GetDte();
-
-        var target = await _newItemFactory.Create(dte);
-
-        var fileName = target!.ProjectItem!.GetFileName();
-
-        var targetVar = _variablesUtil.Get("target");
-
-        var replacementVar = _variablesUtil.Get("replacement");
-
-        var promptDto = PromptForFileName(targetVar, replacementVar);
-
-        ValidateInput(promptDto);
-
-        var lines = _fileUtil.ReadAllLines(fileName!);
-
-        var replacements = new Dictionary<string, string>
+        try
         {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var dte = await _dteUtil.GetDte();
+            var target = await _newItemFactory.Create(dte) ?? throw new InvalidOperationException("Select a source file.");
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            string source = target.ProjectItem?.GetFileName() ?? throw new InvalidOperationException("Select a source file.");
+            string solution = dte.Solution.FullName;
+            var prompt = PromptForFileName(_variablesUtil.Get("target"), _variablesUtil.Get("replacement"));
+            if (!prompt.Result) return;
+            var paths = await WorkerClient.Shared.CloneFilesAsync(new FileCommandRequest
             {
-                promptDto.Target!,
-                promptDto.Replacement!
-            },
-        };
-
-        var camelizedKey = promptDto.Target.Camelize();
-
-        
-        if (!replacements.ContainsKey(camelizedKey))
-        {
-            replacements.Add(camelizedKey,
-                promptDto.Replacement.Camelize());
+                Sources = new List<string> { source }, Target = prompt.Target, Replacement = prompt.Replacement
+            });
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            CommandFiles.Add(dte, target, solution, paths);
+            await _solutionUtil.RefreshSolutionExplorer();
         }
-
-        lines.Replace(replacements);
-
-        var justFile = Path.GetFileName(fileName);
-        var directory = Path.GetDirectoryName(fileName);
-
-        var newFileName = justFile.Replace(promptDto.Target, promptDto.Replacement);
-
-        var newFilePath = Path.Combine(directory, newFileName);
-
-        _fileUtil.WriteAllLines(newFilePath, lines);
-
-        // TODO: add support for project types != .NET Core 3+
-
-        dte.Solution.AddFromFile(newFilePath);
-
-        await _solutionUtil.RefreshSolutionExplorer();
-
-        await base.ExecuteAsync(e);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not clone file.");
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            MessageBox.Show(ex.Message, "Clone file", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
-
-    private static void ValidateInput(ClonePromptDto clonePromptDto)
-    {
-        if (!clonePromptDto.Result)
-            throw new Exception("Messagebox was early exited");
-
-        if (string.IsNullOrEmpty(clonePromptDto.Replacement))
-            throw new ArgumentNullException(nameof(clonePromptDto.Replacement));
-
-        if (string.IsNullOrEmpty(clonePromptDto.Target))
-            throw new ArgumentNullException(nameof(clonePromptDto.Target));
-    }
-
     private static ClonePromptDto PromptForFileName(string? target, string? replacement)
     {
         var dialog = new CloneAndReplaceDialog

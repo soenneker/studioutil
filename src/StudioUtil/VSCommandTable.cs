@@ -29,5 +29,7 @@ namespace StudioUtil
         public const int CreateNewFilesFromClipboardCommand = 0x0326;
         public const int PasteWithReplaceCommand = 0x0327;
         public const int DownloadFileCommand = 0x0328;
+        public const int TestRunnerCommand = 0x0329;
+        public const int testRunnerGroup = 0x0330;
     }
 }

@@ -12,8 +12,9 @@ public class DteUtil : IDteUtil
 {
     private readonly AsyncLazy<DTE2> _dte = new(async () =>
     {
-        var result = await ServiceProvider.GetGlobalServiceAsync(typeof(SDTE)) as DTE2;
-        return result!;
+        var service = await ServiceProvider.GetGlobalServiceAsync(typeof(SDTE));
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        return service as DTE2 ?? throw new System.InvalidOperationException("Visual Studio automation is unavailable.");
     });
         
     public async ValueTask<DTE2> GetDte()

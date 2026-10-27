@@ -1,0 +1,103 @@
+<UserControl x:Class="StudioUtil.Testing.TestRunnerControl"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="clr-namespace:StudioUtil.Testing"
+ xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+ Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+ Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+ FontFamily="Segoe UI" FontSize="12" MinWidth="540" Loaded="OnLoaded" UseLayoutRounding="True">
+ <UserControl.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="TestRunnerResources.xaml"/><ResourceDictionary Source="TestGutterResources.xaml"/></ResourceDictionary.MergedDictionaries>
+   <BooleanToVisibilityConverter x:Key="VisibleIfTrue"/>
+   <HierarchicalDataTemplate DataType="{x:Type local:TestTreeNode}" ItemsSource="{Binding Children}">
+    <Grid Margin="1,4" ToolTip="{Binding Name}">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <TextBlock Text="{Binding Symbol}" VerticalAlignment="Center">
+      <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Opacity" Value="0.6"/>
+       <Style.Triggers>
+        <DataTrigger Binding="{Binding State}" Value="passed"><Setter Property="Foreground" Value="#73C991"/><Setter Property="Opacity" Value="1"/></DataTrigger>
+        <DataTrigger Binding="{Binding State}" Value="failed"><Setter Property="Foreground" Value="#F48771"/><Setter Property="Opacity" Value="1"/></DataTrigger>
+        <DataTrigger Binding="{Binding State}" Value="error"><Setter Property="Foreground" Value="#F48771"/><Setter Property="Opacity" Value="1"/></DataTrigger>
+        <DataTrigger Binding="{Binding State}" Value="in-progress"><Setter Property="Foreground" Value="#75BEFF"/><Setter Property="Opacity" Value="1"/></DataTrigger>
+        <DataTrigger Binding="{Binding State}" Value="skipped"><Setter Property="Foreground" Value="#D7BA7D"/></DataTrigger>
+       </Style.Triggers>
+      </Style></TextBlock.Style>
+     </TextBlock>
+     <TextBlock Grid.Column="1" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+     <TextBlock Grid.Column="2" Text="{Binding CountLabel}" Opacity="0.5" Margin="8,0,4,0"/>
+     <TextBlock Grid.Column="3" Text="{Binding DurationLabel}" Opacity="0.55" Margin="8,0,4,0"/>
+    </Grid>
+   </HierarchicalDataTemplate>
+  </ResourceDictionary>
+ </UserControl.Resources>
+ <DockPanel>
+  <StackPanel DockPanel.Dock="Top">
+   <WrapPanel Margin="6,5">
+    <Button x:Name="DiscoverButton" Click="OnDiscover" ToolTip="Build and discover tests" AutomationProperties.Name="Refresh tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xE72C;"/><TextBlock Text="Refresh"/></StackPanel></Button>
+    <Border Width="1" Margin="7,4" Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Opacity="0.15"/>
+    <Button x:Name="RunAllButton" Click="OnRunAll" ToolTip="Run all discovered tests" AutomationProperties.Name="Run all tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xE768;" Foreground="#73C991"/><TextBlock Text="Run all"/></StackPanel></Button>
+    <Button x:Name="RunButton" Click="OnRun" ToolTip="Run the selected test or group" AutomationProperties.Name="Run selected tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xE768;" Foreground="#73C991"/><TextBlock Text="Run selected"/></StackPanel></Button>
+    <Button x:Name="DebugButton" Click="OnDebug" ToolTip="Debug the selected test or group" AutomationProperties.Name="Debug selected tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xEBE8;"/><TextBlock Text="Debug"/></StackPanel></Button>
+    <Button x:Name="StopButton" Click="OnStop" IsEnabled="False" ToolTip="Stop discovery or execution" AutomationProperties.Name="Stop tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xE71A;" Foreground="#F48771"/><TextBlock Text="Stop"/></StackPanel></Button>
+   </WrapPanel>
+   <ProgressBar x:Name="BusyProgress" Height="2" IsIndeterminate="True" Visibility="Hidden" BorderThickness="0" Background="Transparent" Foreground="#75BEFF"/>
+  </StackPanel>
+  <Grid DockPanel.Dock="Bottom" Margin="12,8">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <TextBlock x:Name="TotalCount" Text="0 tests" Margin="0,0,18,0"/>
+    <TextBlock Text="✓" Foreground="#73C991" Margin="0,0,5,0"/><TextBlock x:Name="PassedCount" Text="0" Margin="0,0,12,0" ToolTip="Passed"/>
+    <TextBlock Text="✗" Foreground="#F48771" Margin="0,0,5,0"/><TextBlock x:Name="FailedCount" Text="0" Margin="0,0,12,0" ToolTip="Failed"/>
+    <TextBlock Text="↷" Foreground="#D7BA7D" Margin="0,0,5,0"/><TextBlock x:Name="SkippedCount" Text="0" Margin="0,0,16,0" ToolTip="Skipped"/>
+   </StackPanel>
+   <TextBlock x:Name="Status" Grid.Column="1" Opacity="0.65" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+   <TextBlock x:Name="Elapsed" Grid.Column="2" Opacity="0.55" Margin="12,0,0,0" VerticalAlignment="Center" ToolTip="Elapsed time"/>
+  </Grid>
+  <Grid Margin="7,6,7,0">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="2*" MinWidth="200"/><ColumnDefinition Width="7"/><ColumnDefinition Width="3*" MinWidth="270"/></Grid.ColumnDefinitions>
+   <DockPanel Margin="0,0,5,0">
+    <Grid DockPanel.Dock="Top" Height="32" Margin="0,0,0,8">
+     <Border Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Opacity="0.055" CornerRadius="3"/>
+     <TextBox x:Name="Search" Padding="28,7,30,7" ToolTip="Search by test, class, or source file" TextChanged="OnSearch" AutomationProperties.Name="Search tests"/>
+     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE721;" Margin="9,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Opacity="0.5" IsHitTestVisible="False"/>
+     <TextBlock Text="Search tests" Margin="28,0,30,0" VerticalAlignment="Center" Opacity="0.5" IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=Search}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+     <Button x:Name="ClearSearchButton" Content="×" HorizontalAlignment="Right" Width="28" Padding="2" Click="OnClearSearch" ToolTip="Clear search" AutomationProperties.Name="Clear search" Visibility="Collapsed"/>
+    </Grid>
+    <Grid>
+     <TreeView VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True" x:Name="Tests" BorderThickness="0" SelectedItemChanged="OnSelectionChanged" MouseDoubleClick="OnNavigate" PreviewMouseRightButtonDown="OnTestRightClick" ContextMenuOpening="OnTestMenuOpening" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
+      <TreeView.ItemsPanel><ItemsPanelTemplate><local:TestItemsPanel/></ItemsPanelTemplate></TreeView.ItemsPanel><TreeView.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/><Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource VisibleIfTrue}}"/><Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"/><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style></TreeView.ItemContainerStyle>
+     </TreeView>
+     <StackPanel x:Name="TreeEmpty" Margin="22,38" IsHitTestVisible="False">
+      <TextBlock x:Name="TreeEmptyTitle" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock x:Name="TreeEmptyDetail" Opacity="0.6" Margin="0,9,0,0" TextWrapping="Wrap" LineHeight="19"/>
+     </StackPanel>
+    </Grid>
+   </DockPanel>
+   <GridSplitter Grid.Column="1" Width="7" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="Transparent"><GridSplitter.Template><ControlTemplate TargetType="GridSplitter"><Border Background="Transparent"><Border Width="1" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" Opacity="0.12"/></Border></ControlTemplate></GridSplitter.Template></GridSplitter>
+   <DockPanel Grid.Column="2" Margin="9,0,0,0">
+    <DockPanel DockPanel.Dock="Top" Height="32" Margin="0,0,0,8">
+     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+      <ToggleButton x:Name="ShowSessionLog" Content="Session log" Checked="OnLogViewChanged" Unchecked="OnLogViewChanged" ToolTip="Show build and runner diagnostics"/>
+      <ToggleButton x:Name="WrapOutput" Content="↵" Width="28" Padding="4" Checked="OnWrapOutput" Unchecked="OnWrapOutput" ToolTip="Wrap long lines" AutomationProperties.Name="Wrap output"/>
+      <Button x:Name="CopyOutputButton" FontFamily="Segoe MDL2 Assets" Content="&#xE8C8;" Width="28" Padding="4" Click="OnCopyOutput" ToolTip="Copy output" AutomationProperties.Name="Copy output"/>
+     </StackPanel>
+     <TextBlock Text="OUTPUT" FontSize="10" FontWeight="SemiBold" Opacity="0.55" VerticalAlignment="Center"/>
+    </DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="4,0,4,12">
+     <TextBlock x:Name="OutputTitle" Text="Session log" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+     <DockPanel Margin="0,5,0,0">
+      <TextBlock x:Name="OutputState" DockPanel.Dock="Left" Opacity="0.65" VerticalAlignment="Center"/>
+      <TextBlock x:Name="OutputDuration" DockPanel.Dock="Left" Opacity="0.5" Margin="10,0" VerticalAlignment="Center"/>
+      <Button x:Name="SourceButton" HorizontalAlignment="Left" Padding="0,2" Opacity="0.6" Click="OnOpenSource" Visibility="Collapsed"/>
+     </DockPanel>
+    </StackPanel>
+    <Grid>
+     <local:LinkedTestOutput x:Name="TestOutput" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Padding="4,4" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+     <local:LinkedTestOutput x:Name="SessionLog" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Padding="4,4" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+     <TextBlock x:Name="OutputEmpty" Margin="4,10" Opacity="0.5" IsHitTestVisible="False" Visibility="Collapsed" TextWrapping="Wrap"/>
+    </Grid>
+   </DockPanel>
+  </Grid>
+ </DockPanel>
+</UserControl>

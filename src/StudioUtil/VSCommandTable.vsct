@@ -10,6 +10,9 @@
 
 	<Commands package="StudioUtil">
 		<Groups>
+            <Group guid="StudioUtil" id="testRunnerGroup" priority="0x1000">
+                <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS" />
+            </Group>
 			<Group guid="StudioUtil" id="grpIdMenuProjectItem" priority="0x0700">
 				<!--Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ITEMNODE" /-->
 			</Group>
@@ -19,6 +22,10 @@
 		</Groups>
 
         <Buttons>
+            <Button guid="StudioUtil" id="TestRunnerCommand" priority="0x1000" type="Button">
+                <Parent guid="StudioUtil" id="testRunnerGroup" />
+                <Strings><ButtonText>StudioUtil Tests</ButtonText></Strings>
+            </Button>
             <Button guid="StudioUtil" id="InsertInheritDocCommand" priority="0x0600" type="Button">
                 <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_TEXTEDIT"/>
                 <Strings>
@@ -102,6 +109,8 @@
             <IDSymbol name="CreateNewFilesFromClipboardCommand" value="0x0326" />
             <IDSymbol name="PasteWithReplaceCommand" value="0x0327" />
             <IDSymbol name="DownloadFileCommand" value="0x0328" />
+            <IDSymbol name="TestRunnerCommand" value="0x0329" />
+            <IDSymbol name="testRunnerGroup" value="0x0330" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>

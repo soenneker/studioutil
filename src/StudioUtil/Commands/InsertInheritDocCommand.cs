@@ -1,24 +1,16 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Threading.Tasks;
 using Community.VisualStudio.Toolkit;
-using StudioUtil.Utils.Abstract;
-using Community.VisualStudio.Toolkit.DependencyInjection.Core;
 using Community.VisualStudio.Toolkit.DependencyInjection;
+using Community.VisualStudio.Toolkit.DependencyInjection.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Shell;
-using EnvDTE80;
-using Microsoft.VisualStudio.Text.Editor;
+using StudioUtil.Testing;
 using StudioUtil.Utils;
-using System.Text.RegularExpressions;
+using StudioUtil.Utils.Abstract;
 
 namespace StudioUtil.Commands;
 
-#nullable enable
-
-/// <summary>
-/// Represents the insert inherit doc command.
-/// </summary>
 [Command(PackageIds.InsertInheritDocCommand)]
 public class InsertInheritDocCommand : BaseDICommand
 {
@@ -31,96 +23,35 @@ public class InsertInheritDocCommand : BaseDICommand
         _dteUtil = dteUtil;
     }
 
-    /// <summary>
-    /// Gets interface from text.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>The result of the operation.</returns>
-    public static string? GetInterfaceFromText(string text)
-    {
-        Regex regex = new(@"(:|,) (I[a-zA-Z]+)", RegexOptions.Compiled);
-
-        var matches = regex.Match(text);
-
-        if (matches != null && matches.Groups.Count == 3)
-        {
-            return matches.Groups[2].Value;
-        }
-
-        return null;
-    }
-
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
-        var view = ProjectHelpers.GetCurentTextView();
-
-        if (view != null)
-        {
-            var dte = await _dteUtil.GetDte();
-
-            InsertText(view, dte);
-        }
-
-        await base.ExecuteAsync(e);
-    }
-    private static string? GetNextLine(IWpfTextView view)
-    {
-        var caretLineNumber = view.TextSnapshot.GetLineNumberFromPosition(view.Caret.Position.BufferPosition);
-
-        var lines = view.TextSnapshot.Lines.ToList();
-
-        if (!lines.Any())
-            return null;
-
-        if (caretLineNumber > lines.Count)
-            return null;
-
-        var nextLine = lines[caretLineNumber + 1];
-
-        return nextLine.GetText();
-    }
-
-    private static void InsertText(IWpfTextView view, DTE2 dte)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
         try
         {
-            dte.UndoContext.Open("Insert text");
-
-            using (var edit = view.TextBuffer.CreateEdit())
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var view = ProjectHelpers.GetCurentTextView();
+            if (view == null) return;
+            var dte = await _dteUtil.GetDte();
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var snapshot = view.TextSnapshot;
+            int position = view.Caret.Position.BufferPosition.Position;
+            var selection = view.Selection.StreamSelectionSpan.SnapshotSpan.Span;
+            int nextLine = snapshot.GetLineNumberFromPosition(position) + 1;
+            string declaration = nextLine < snapshot.LineCount ? snapshot.GetLineFromLineNumber(nextLine).GetText() : "";
+            string text = await WorkerClient.Shared.DocumentationAsync(declaration);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            // Never apply an asynchronously prepared edit to a changed document or selection.
+            if (view.IsClosed || view.TextSnapshot != snapshot || view.Caret.Position.BufferPosition.Position != position
+                || view.Selection.StreamSelectionSpan.SnapshotSpan.Span != selection) return;
+            dte.UndoContext.Open("Insert documentation");
+            try
             {
-                if (!view.Selection.IsEmpty)
-                {
-                    edit.Delete(view.Selection.SelectedSpans[0].Span);
-                    view.Selection.Clear();
-                }
-
-                var text = "///<inheritdoc/>";
-
-                var nextLine = GetNextLine(view);
-
-                if (!string.IsNullOrWhiteSpace(nextLine))
-                {
-                    var interText = GetInterfaceFromText(nextLine!);
-
-                    if (interText != null)
-                    {
-                        text = $"///<inheritdoc cref=\"{interText}\"/>";
-                    }
-                }
-                
-                edit.Insert(view.Caret.Position.BufferPosition, text);
+                using var edit = view.TextBuffer.CreateEdit();
+                if (selection.Length > 0) edit.Replace(selection, text);
+                else edit.Insert(position, text);
                 edit.Apply();
             }
+            finally { dte.UndoContext.Close(); }
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.Write(ex);
-        }
-        finally
-        {
-            dte.UndoContext.Close();
-        }
+        catch (Exception ex) { _logger.LogError(ex, "Could not insert documentation."); }
     }
 }

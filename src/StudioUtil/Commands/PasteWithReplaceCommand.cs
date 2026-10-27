@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,10 +9,10 @@ using Microsoft.VisualStudio.Shell;
 using StudioUtil.Dtos;
 using Community.VisualStudio.Toolkit.DependencyInjection.Core;
 using Community.VisualStudio.Toolkit.DependencyInjection;
-using Humanizer;
+using System.Linq;
 using StudioUtil.Utils.Abstract;
 using MessageBox = System.Windows.MessageBox;
-using StudioUtil.Extensions;
+using StudioUtil.Testing;
 using StudioUtil.Utils;
 
 namespace StudioUtil.Commands;
@@ -25,17 +25,15 @@ namespace StudioUtil.Commands;
 [Command(PackageIds.PasteWithReplaceCommand)]
 public class PasteWithReplaceCommand : BaseDICommand
 {
-    private readonly IFileUtilSync _fileUtil;
     private readonly IDteUtil _dteUtil;
     private readonly INewItemFactory _newItemFactory;
     private readonly IVariablesUtil _variablesUtil;
     private readonly ILogger<PasteWithReplaceCommand> _logger;
     private readonly ISolutionUtil _solutionUtil;
 
-    public PasteWithReplaceCommand(DIToolkitPackage package, IFileUtilSync fileUtil, IDteUtil dteUtil, INewItemFactory newItemFactory, IVariablesUtil variablesUtil,
+    public PasteWithReplaceCommand(DIToolkitPackage package, IDteUtil dteUtil, INewItemFactory newItemFactory, IVariablesUtil variablesUtil,
         ILogger<PasteWithReplaceCommand> logger, ISolutionUtil solutionUtil) : base(package)
     {
-        _fileUtil = fileUtil;
         _dteUtil = dteUtil;
         _newItemFactory = newItemFactory;
         _variablesUtil = variablesUtil;
@@ -45,114 +43,33 @@ public class PasteWithReplaceCommand : BaseDICommand
 
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
-        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-        _logger.LogInformation("Starting file creation from clipboard");
-
-        // Get files from the clipboard
-        var filesFromClipboard = GetFiles();
-
-        if (filesFromClipboard.Count == 0)
+        try
         {
-            MessageBox.Show("No files found in the clipboard.");
-            return;
-        }
-
-        // Prompt for the target and replacement strings
-        var targetVar = _variablesUtil.Get("target");
-        var replacementVar = _variablesUtil.Get("replacement");
-        var promptDto = PromptForFileName(targetVar, replacementVar);
-
-        ValidateInput(promptDto);
-
-        foreach (var kvp in filesFromClipboard)
-        {
-            var fileName = kvp.Key;
-            var lines = kvp.Value;
-
-            var replacements = new Dictionary<string, string>
-            {
-                {promptDto.Target!, promptDto.Replacement!}
-            };
-
-            // Perform additional camel-cased replacement
-            var camelizedKey = promptDto.Target.Camelize();
-
-            if (!replacements.ContainsKey(camelizedKey))
-            {
-                replacements.Add(camelizedKey, promptDto.Replacement.Camelize());
-            }
-
-            // Apply replacements to the lines
-            lines.Replace(replacements);
-
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var sources = Clipboard.ContainsFileDropList() ? Clipboard.GetFileDropList().Cast<string>().ToList() : new List<string>();
+            if (sources.Count == 0) { MessageBox.Show("No files found in the clipboard."); return; }
             var dte = await _dteUtil.GetDte();
-            var target = await _newItemFactory.Create(dte);
-            var directory = Path.GetDirectoryName(target?.ProjectItem?.GetFileName());
-
-            if (directory == null)
+            var target = await _newItemFactory.Create(dte) ?? throw new InvalidOperationException("Select a destination folder.");
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            string directory = target.Directory ?? throw new DirectoryNotFoundException("Select a destination folder.");
+            string solution = dte.Solution.FullName;
+            var prompt = PromptForFileName(_variablesUtil.Get("target"), _variablesUtil.Get("replacement"));
+            if (!prompt.Result) return;
+            var paths = await WorkerClient.Shared.CloneFilesAsync(new FileCommandRequest
             {
-                _logger.LogError("Failed to determine target directory.");
-                throw new DirectoryNotFoundException("Could not determine target directory.");
-            }
-
-            var newFileName = fileName.Replace(promptDto.Target, promptDto.Replacement);
-
-            var newFilePath = Path.Combine(directory, newFileName);
-
-            // Write updated lines to the new file
-            _fileUtil.WriteAllLines(newFilePath, lines);
-
-            // Add new file to solution
-            dte.Solution.AddFromFile(newFilePath);
+                Sources = sources, Directory = directory, Target = prompt.Target, Replacement = prompt.Replacement
+            });
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            CommandFiles.Add(dte, target, solution, paths);
+            await _solutionUtil.RefreshSolutionExplorer();
         }
-
-        await _solutionUtil.RefreshSolutionExplorer();
-        await base.ExecuteAsync(e);
-    }
-
-    private Dictionary<string, List<string>> GetFiles()
-    {
-        var dict = new Dictionary<string, List<string>>();
-
-        if (Clipboard.ContainsFileDropList())
+        catch (Exception ex)
         {
-            var files = Clipboard.GetFileDropList();
-
-            foreach (var filePath in files)
-            {
-                try
-                {
-                    var fileContent = _fileUtil.ReadAllLines(filePath!);
-                    var fileName = Path.GetFileName(filePath);
-                    dict[fileName] = fileContent;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error reading file '{filePath}': {ex.Message}");
-                }
-            }
+            _logger.LogError(ex, "Could not paste files.");
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            MessageBox.Show(ex.Message, "Paste files", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-        else
-        {
-            MessageBox.Show("Clipboard does not contain a file.");
-        }
-
-        return dict;
     }
-
-    private static void ValidateInput(ClonePromptDto clonePromptDto)
-    {
-        if (!clonePromptDto.Result)
-            throw new Exception("Messagebox was closed prematurely");
-
-        if (string.IsNullOrEmpty(clonePromptDto.Replacement))
-            throw new ArgumentNullException(nameof(clonePromptDto.Replacement));
-
-        if (string.IsNullOrEmpty(clonePromptDto.Target))
-            throw new ArgumentNullException(nameof(clonePromptDto.Target));
-    }
-
     private static ClonePromptDto PromptForFileName(string? target, string? replacement)
     {
         var dialog = new CloneAndReplaceDialog

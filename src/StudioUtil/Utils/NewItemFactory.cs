@@ -8,6 +8,7 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Project = EnvDTE.Project;
+using StudioUtil.Testing;
 
 namespace StudioUtil.Utils;
 
@@ -34,7 +35,7 @@ public class NewItemFactory : INewItemFactory
         // If a document is active, try to use the document's containing directory.
         if (dte.ActiveWindow is Window2 {Type: vsWindowType.vsWindowTypeDocument})
         {
-            item = CreateFromActiveDocument(dte);
+            item = await CreateFromActiveDocument(dte);
         }
 
         // If no document was selected, or we could not get a selected item from 
@@ -47,18 +48,18 @@ public class NewItemFactory : INewItemFactory
         return item;
     }
 
-#pragma warning disable VSTHRD010 // Invoke single-threaded types on Main thread
-
-    private NewItem? CreateFromActiveDocument(DTE2 dte)
+    private async ValueTask<NewItem?> CreateFromActiveDocument(DTE2 dte)
     {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         var fileName = dte.ActiveDocument?.FullName;
 
-        if (File.Exists(fileName))
+        if (fileName is { Length: > 0 } && await WorkerClient.Shared.PathKindAsync(fileName) == "file")
         {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var docItem = dte.Solution.FindProjectItem(fileName);
             if (docItem != null)
             {
-                return CreateFromProjectItem(docItem);
+                return await CreateFromProjectItem(docItem);
             }
         }
 
@@ -67,6 +68,7 @@ public class NewItemFactory : INewItemFactory
 
     private async ValueTask<NewItem?> CreateFromSolutionExplorerSelection(DTE2 dte)
     {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         var items = (Array) dte.ToolWindows.SolutionExplorer.SelectedItems;
 
         if (items.Length == 1)
@@ -112,15 +114,16 @@ public class NewItemFactory : INewItemFactory
 
             if (selection.Object is ProjectItem projectItem)
             {
-                return CreateFromProjectItem(projectItem);
+                return await CreateFromProjectItem(projectItem);
             }
         }
 
         return null;
     }
 
-    private NewItem? CreateFromProjectItem(ProjectItem projectItem)
+    private async ValueTask<NewItem?> CreateFromProjectItem(ProjectItem projectItem)
     {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         if (projectItem.IsKind(Constants.vsProjectItemKindSolutionItems))
         {
             var newItem = new NewItem
@@ -138,7 +141,7 @@ public class NewItemFactory : INewItemFactory
             projectItem = ResolveToPhysicalProjectItem(projectItem);
             var fileName = projectItem.GetFileName();
 
-            if (string.IsNullOrEmpty(fileName))
+            if (fileName == null || fileName.Length == 0)
             {
                 return null;
             }
@@ -146,7 +149,8 @@ public class NewItemFactory : INewItemFactory
             // If the file exists, then it must be a file and we can get the
             // directory name from it. If the file does not exist, then it
             // must be a directory, and the directory name is the file name.
-            var directory = File.Exists(fileName) ? Path.GetDirectoryName(fileName) : fileName;
+            var directory = await WorkerClient.Shared.PathKindAsync(fileName) == "file" ? Path.GetDirectoryName(fileName) : fileName;
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             var newItem = new NewItem
             {
@@ -176,5 +180,3 @@ public class NewItemFactory : INewItemFactory
         return projectItem;
     }
 }
-
-#pragma warning restore VSTHRD010 // Invoke single-threaded types on Main thread

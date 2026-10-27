@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);IS_CORE_MTP;IS_MTP_SERVER_MODE_CLIENT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../StudioUtil.Contracts/*.cs" Link="Contracts/%(Filename)%(Extension)" />
+    <Compile Include="../StudioUtil/Testing/ITestSession.cs" Link="ITestSession.cs" />
+    <PackageReference Include="Humanizer.Core" Version="3.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Testing.Platform.ServerMode.Client.Sources" Version="2.5.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageReference Include="Soenneker.Hashing.Sha256" Version="4.0.17" />
+    <PackageReference Include="Soenneker.Utils.File" Version="11.0.2328" />
+    <PackageReference Include="Soenneker.Utils.Directory" Version="11.0.970" />
+    <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2766" />
+    <PackageReference Include="Soenneker.Utils.Process" Version="11.0.1604" />
+  </ItemGroup>
+</Project>

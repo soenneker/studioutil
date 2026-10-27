@@ -7,8 +7,13 @@
     <File Path=".editorconfig" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/StudioUtil/StudioUtil.csproj">
+    <Project Path="src/StudioUtil.Worker/StudioUtil.Worker.csproj" />
+    <Project Path="src/StudioUtil/StudioUtil.csproj" Id="1c0e61e6-e03e-4d4c-a3d0-efda3e7b6a54">
       <Platform Solution="*|x86" Project="x86" />
+      <Deploy Solution="Debug|*" />
     </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StudioUtil.Testing.Tests/StudioUtil.Testing.Tests.csproj" />
   </Folder>
 </Solution>

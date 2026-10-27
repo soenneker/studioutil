@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Shell;
+using StudioUtil.Testing;
 
 namespace StudioUtil;
 
@@ -19,13 +20,14 @@ namespace StudioUtil;
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [InstalledProductRegistration(Vsix.Name, Vsix.Description, Vsix.Version)]
 [ProvideMenuResource("Menus.ctmenu", 1)]
+[ProvideToolWindow(typeof(TestRunnerWindow), Style = VsDockStyle.Tabbed, Window = EnvDTE.Constants.vsWindowKindOutput, Width = 1000, Height = 380)]
+[ProvideBindingPath]
 [Guid(PackageGuids.StudioUtilString)]
 public sealed class StudioUtilPackage : MicrosoftDIToolkitPackage<StudioUtilPackage>
 {
     protected override void InitializeServices(IServiceCollection services)
     {
         // Register your services here
-        services.AddSingleton<IFileUtilSync, FileUtilSync>();
         services.AddSingleton<INewItemFactory, NewItemFactory>();
         services.AddSingleton<IProjectUtil, ProjectUtil>();
         services.AddSingleton<IVariablesUtil, VariablesUtil>();
@@ -49,5 +51,6 @@ public sealed class StudioUtilPackage : MicrosoftDIToolkitPackage<StudioUtilPack
     protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
     {
         await base.InitializeAsync(cancellationToken, progress);
+        await TestRunnerCommand.InitializeAsync(this);
     }
 }

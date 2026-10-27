@@ -3,6 +3,7 @@ using StudioUtil.Utils.Abstract;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell;
+using StudioUtil.Testing;
 
 namespace StudioUtil.Utils;
 
@@ -58,17 +59,19 @@ public class ProjectUtil : IProjectUtil
             }
         }
 
-        if (string.IsNullOrEmpty(fullPath))
+        if (fullPath == null || fullPath.Length == 0)
         {
-            return File.Exists(project.FullName) ? Path.GetDirectoryName(project.FullName) : null;
+            string projectPath = project.FullName;
+            return await WorkerClient.Shared.PathKindAsync(projectPath) == "file" ? Path.GetDirectoryName(projectPath) : null;
         }
 
-        if (Directory.Exists(fullPath))
+        string kind = await WorkerClient.Shared.PathKindAsync(fullPath);
+        if (kind == "directory")
         {
             return fullPath;
         }
 
-        if (File.Exists(fullPath))
+        if (kind == "file")
         {
             return Path.GetDirectoryName(fullPath);
         }
