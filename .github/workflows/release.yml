@@ -1,0 +1,66 @@
+name: Build and publish
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-test:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 11.0.100-rc.3.26522.148
+      - name: Locate Visual Studio tools
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.VisualStudio.Component.VSSDK -property installationPath
+          if (!$vs) { throw 'Visual Studio 2026 with the extension SDK is required.' }
+          "MSBUILD=$vs/MSBuild/Current/Bin/MSBuild.exe" >> $env:GITHUB_ENV
+          "VSIX_PUBLISHER=$vs/VSSDK/VisualStudioIntegration/Tools/Bin/VsixPublisher.exe" >> $env:GITHUB_ENV
+      - name: Stamp release version
+        id: version
+        run: ./build/Set-ReleaseVersion.ps1 -RunNumber $env:GITHUB_RUN_NUMBER -RunAttempt $env:GITHUB_RUN_ATTEMPT
+      - name: Build Release VSIX and worker
+        run: |
+          & $env:MSBUILD src/StudioUtil/StudioUtil.csproj /restore /t:Build /p:Configuration=Release /p:DeployExtension=false /nr:false /v:minimal
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Test runner and worker
+        run: dotnet test --project tests/StudioUtil.Testing.Tests -c Release
+      - name: Test WPF rendering
+        run: dotnet test --project tests/StudioUtil.Rendering.Tests -c Release
+      - name: Upload installable extension
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: StudioUtil-${{ steps.version.outputs.version }}
+          path: src/StudioUtil/bin/Release/StudioUtil.vsix
+          if-no-files-found: error
+      - name: Publish to Visual Studio Marketplace
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          VS_MARKETPLACE_TOKEN: ${{ secrets.VS_MARKETPLACE_TOKEN }}
+        run: |
+          if (!$env:VS_MARKETPLACE_TOKEN) {
+            Write-Host '::warning::Publishing skipped: configure the VS_MARKETPLACE_TOKEN repository secret.'
+            '### Marketplace publishing skipped' >> $env:GITHUB_STEP_SUMMARY
+            'Add the VS_MARKETPLACE_TOKEN repository secret for the soenneker publisher, then rerun this workflow. The validated VSIX is available in the run artifacts.' >> $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+          & $env:VSIX_PUBLISHER publish -payload src/StudioUtil/bin/Release/StudioUtil.vsix -publishManifest vs-publish.json -personalAccessToken $env:VS_MARKETPLACE_TOKEN
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          'Published StudioUtil ${{ steps.version.outputs.version }} to the Visual Studio Marketplace.' >> $env:GITHUB_STEP_SUMMARY

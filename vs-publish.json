@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json.schemastore.org/vsix-publish",
+  "categories": ["build", "coding"],
+  "identity": { "internalName": "StudioUtil" },
+  "overview": "README.md",
+  "priceCategory": "free",
+  "publisher": "soenneker",
+  "private": false,
+  "qna": true,
+  "repo": "https://github.com/soenneker/studioutil",
+  "assetFiles": [
+    { "pathOnDisk": "src/StudioUtil/Resources/logo.png", "targetPath": "src/StudioUtil/Resources/logo.png" },
+    { "pathOnDisk": "misc/test-runner.jpg", "targetPath": "misc/test-runner.jpg" },
+    { "pathOnDisk": "misc/WhatItDoes.gif", "targetPath": "misc/WhatItDoes.gif" },
+    { "pathOnDisk": "misc/contextmenu.png", "targetPath": "misc/contextmenu.png" },
+    { "pathOnDisk": "misc/cloneandreplace.png", "targetPath": "misc/cloneandreplace.png" }
+  ]
+}
