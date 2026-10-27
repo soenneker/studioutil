@@ -39,7 +39,7 @@
     <Compile Include="../../src/StudioUtil/Testing/Worker*.cs" />
     <PackageReference Include="Soenneker.Utils.Process" Version="11.0.1604" />
     <PackageReference Include="Soenneker.Hashing.Sha256" Version="4.0.17" />
-    <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2766" />
+    <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2769" />
     <Compile Include="../../src/StudioUtil.Worker/WorkerJsonContext.cs" />
     <Compile Include="../../src/StudioUtil.Worker/RunArtifacts.cs" />
   </ItemGroup>

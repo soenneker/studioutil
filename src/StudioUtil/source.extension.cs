@@ -11,7 +11,7 @@ namespace StudioUtil
         public const string Name = "StudioUtil";
         public const string Description = @"A Visual Studio extension with miscellaneous tools to ease development effort.";
         public const string Language = "en-US";
-        public const string Version = "2.1";
+        public const string Version = "2.2";
         public const string Author = "Jake Soenneker";
         public const string Tags = "";
     }

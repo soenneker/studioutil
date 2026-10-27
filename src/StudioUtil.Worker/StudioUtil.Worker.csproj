@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
@@ -16,7 +16,7 @@
     <PackageReference Include="Soenneker.Hashing.Sha256" Version="4.0.17" />
     <PackageReference Include="Soenneker.Utils.File" Version="11.0.2328" />
     <PackageReference Include="Soenneker.Utils.Directory" Version="11.0.970" />
-    <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2766" />
+    <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2769" />
     <PackageReference Include="Soenneker.Utils.Process" Version="11.0.1604" />
     <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="11.0.44" />
   </ItemGroup>
