@@ -26,6 +26,9 @@ public partial class TestRunnerControl : UserControl, IDisposable
     private readonly HashSet<TestTreeNode> _runningTests = new();
     private readonly BlockingCollection<PendingTestUpdate> _pending = new(256);
     private readonly PendingLogBuffer _pendingLogs = new();
+    private readonly ConcurrentQueue<Action> _progress = new();
+    private readonly System.Diagnostics.Stopwatch _phaseElapsed = new();
+    private string? _lastRunFolder;
     private int _shownTotal = -1, _shownPassed = -1, _shownFailed = -1, _shownSkipped = -1;
     private long _shownSeconds = -1;
     private readonly WorkerClient _worker = WorkerClient.Shared;
@@ -45,7 +48,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
     private bool _disposed;
     private bool _clearOnCompletion;
     private int _errors;
-    
+
     private string? _solutionPath;
     private JoinableTask? _cacheWrites;
     private int _solutionGeneration;
@@ -147,6 +150,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
 
     private void Clear()
     {
+        _lastRunFolder = null;
         _roots.Clear(); _cases.Clear(); _runningTests.Clear(); TestOutput.Clear();
         _expansionBeforeSearch.Clear();
         Tests.ItemsSource = _roots;
@@ -225,9 +229,9 @@ public partial class TestRunnerControl : UserControl, IDisposable
         });
     }
 
-    private Task RunAsync(bool all, bool debug, TestTreeNode? target = null)
+    private Task RunAsync(bool all, bool debug, TestTreeNode? target = null, TestTreeNode[]? selection = null)
     {
-        var selected = all ? _cases.Values.ToArray() : Descendants(target ?? Tests.SelectedItem as TestTreeNode).ToArray();
+        var selected = selection ?? (all ? _cases.Values.ToArray() : Descendants(target ?? Tests.SelectedItem as TestTreeNode).ToArray());
         return ExecuteAsync(async token =>
         {
             await InitializeAsync();
@@ -240,23 +244,33 @@ public partial class TestRunnerControl : UserControl, IDisposable
 
     private async Task RunCoreAsync(TestTreeNode[] selected, bool debug, bool all, bool build, CancellationToken token)
     {
+        foreach (var test in selected) test.Reset();
+        foreach (var root in _roots) root.RefreshGroup();
+        ShowOutput(Tests.SelectedItem as TestTreeNode);
         foreach (var group in selected.GroupBy(t => t.Module.Key))
         {
             token.ThrowIfCancellationRequested();
             var module = group.First().Module;
             try
             {
-                if (build)
-                {
-                    SetPhase("Building", module.DisplayName);
-                    await _worker.BuildModuleAsync(module, Log, token);
-                }
-                SetPhase(debug ? "Debugging" : "Running", $"{group.Count()} test(s) in {module.DisplayName}");
-                foreach (var test in group) test.Reset();
+                SetPhase("Queued", module.DisplayName);
                 Log($"{(debug ? "Debugging" : "Running")} {module.DisplayName}…");
                 Func<int, CancellationToken, Task>? attach = debug ? AttachDebuggerAsync : null;
-                await _worker.RunAsync(module, all ? null : group.Select(t => t.Uid!).ToArray(), attach,
-                    u => QueueUpdate(module, u, false, token), Log, token);
+                await _worker.ExecuteRunAsync(module, all ? null : group.Select(t => t.Uid!).ToArray(), build, attach,
+                    u => QueueUpdate(module, u, false, token), Log, message => _progress.Enqueue(() =>
+                    {
+                        if (message.Kind == "artifacts")
+                        {
+                            _lastRunFolder = message.Path;
+                            foreach (var test in group) test.RunFolder = message.Path;
+                        }
+                        else
+                        {
+                            SetPhase(message.Text!, module.DisplayName);
+                            foreach (var test in group) test.PreparationPhase = message.Text == "Running" ? "Queued" : message.Text!;
+                        }
+                        _outputDirty = true;
+                    }), token);
                 await FlushUpdatesAsync();
                 foreach (var test in group.Where(t => t.State is "queued" or "in-progress"))
                 {
@@ -271,7 +285,8 @@ public partial class TestRunnerControl : UserControl, IDisposable
                 _errors++;
                 Log($"Run failed for {module.DisplayName}: {ex.Message}");
                 await FlushUpdatesAsync();
-                foreach (var test in group.Where(t => t.State is "queued" or "in-progress")) test.State = "error";
+                foreach (var test in group.Where(t => t.State is "queued" or "in-progress"))
+                    test.Apply(new TestNodeUpdate { ExecutionState = "error", ErrorMessage = ex.Message });
             }
         }
     }
@@ -298,6 +313,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
         _operation = operation;
         _errors = 0;
         _elapsed.Restart();
+        _phaseElapsed.Restart();
         _phase = "Preparing";
         _phaseDetail = "";
         SetBusy(true);
@@ -312,7 +328,13 @@ public partial class TestRunnerControl : UserControl, IDisposable
             await FlushUpdatesAsync();
             foreach (var test in _cases.Values.Where(t => t.State is "queued" or "in-progress")) test.State = "cancelled";
         }
-        catch (Exception ex) { _errors++; Log(ex.Message); ActivityLog.LogError("StudioUtil Tests", ex.ToString()); }
+        catch (Exception ex)
+        {
+            _errors++; Log(ex.Message); ActivityLog.LogError("StudioUtil Tests", ex.ToString());
+            await FlushUpdatesAsync();
+            foreach (var test in _cases.Values.Where(t => t.State is "queued" or "in-progress"))
+                test.Apply(new TestNodeUpdate { ExecutionState = "error", ErrorMessage = ex.Message });
+        }
         finally
         {
             await FlushUpdatesAsync();
@@ -333,7 +355,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
                 Status.Text = $"{(cancelled ? "Cancelled. " : "")}{_cases.Count} tests • {_cases.Values.Count(t => t.State == "passed")} passed • {_cases.Values.Count(IsFailed)} failed • {_cases.Values.Count(t => t.State == "skipped")} skipped"
                     + (_errors > 0 ? $" • {_errors} runner error(s); see Session log" : "");
                 ActivityLog.LogInformation("StudioUtil Tests", Status.Text);
-                _phase = cancelled ? "Stopped" : _errors > 0 ? "Runner error — see session log" : "Ready";
+                _phase = cancelled ? "Stopped" : _errors > 0 ? "Runner error — see session log" : "Finished";
                 _phaseDetail = "";
                 foreach (var root in _roots) root.RefreshGroup();
                 UpdateChrome();
@@ -470,6 +492,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
     }
     private void Drain()
     {
+        while (_progress.TryDequeue(out var progress)) progress();
         // Large builds and discovery batches must yield to input and layout between updates.
         long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 125;
         for (int count = 0; count < 64 && _pending.TryTake(out var item); count++)
@@ -487,14 +510,14 @@ public partial class TestRunnerControl : UserControl, IDisposable
         {
             bool follow = SessionLog.VerticalOffset >= SessionLog.ExtentHeight - SessionLog.ViewportHeight - 2;
             SessionLog.AppendText(text);
-            if (follow && SessionLog.IsVisible) SessionLog.ScrollToEnd();
+            if (follow && FollowOutput.IsChecked == true && SessionLog.IsVisible) SessionLog.ScrollToEnd();
         }
         UpdateChrome();
     }
 
     private async Task FlushUpdatesAsync()
     {
-        while (_pending.Count > 0 || !_pendingLogs.IsEmpty)
+        while (_pending.Count > 0 || !_pendingLogs.IsEmpty || !_progress.IsEmpty)
         {
             Drain();
             await System.Windows.Threading.Dispatcher.Yield(DispatcherPriority.Background);
@@ -510,6 +533,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
 
     private void SetPhase(string phase, string detail)
     {
+        if (_phase != phase) _phaseElapsed.Restart();
         _phase = phase; _phaseDetail = detail;
         UpdateChrome();
     }
@@ -526,16 +550,18 @@ public partial class TestRunnerControl : UserControl, IDisposable
         if (_shownPassed != passed) { _shownPassed = passed; PassedCount.Text = passed.ToString(); }
         if (_shownFailed != failed) { _shownFailed = failed; FailedCount.Text = failed.ToString(); }
         if (_shownSkipped != skipped) { _shownSkipped = skipped; SkippedCount.Text = skipped.ToString(); }
-        string status = busy ? _phase + " · " + _phaseDetail : _phase;
+        string status = busy ? _phase + " · " + TestDuration.Format(Math.Floor(_phaseElapsed.Elapsed.TotalSeconds) * 1000) + " · " + _phaseDetail : _phase;
         if (Status.Text != status) Status.Text = status;
         long seconds = (long)_elapsed.Elapsed.TotalSeconds;
-        if (_shownSeconds != seconds) { _shownSeconds = seconds; Elapsed.Text = seconds > 0 ? _elapsed.Elapsed.ToString(@"m\:ss") : ""; }
+        if (_shownSeconds != seconds) { _shownSeconds = seconds; Elapsed.Text = seconds > 0 ? TestDuration.Format(seconds * 1000.0) : ""; }
         bool noMatches = _cases.Count > 0 && !_roots.Any(n => n.IsVisible);
         TreeEmpty.Visibility = _cases.Count == 0 || noMatches ? Visibility.Visible : Visibility.Collapsed;
         TreeEmptyTitle.Text = noMatches ? "No matching tests" : busy ? _phase + "…" : _errors > 0 ? "Discovery couldn't finish" : "Your tests, in one place";
         TreeEmptyDetail.Text = noMatches ? "Try another name or clear the search." : busy ? "Tests will appear here as they're discovered." : _errors > 0 ? "Open the session log for details, then refresh." : "Open a solution and select Refresh to discover its tests.";
         ClearSearchButton.Visibility = Search.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         CopyOutputButton.IsEnabled = (SessionLog.Visibility == Visibility.Visible ? SessionLog.TextLength : TestOutput.TextLength) > 0;
+        RerunFailedButton.IsEnabled = !busy && failed > 0;
+        OpenRunFolderButton.IsEnabled = (Tests.SelectedItem as TestTreeNode)?.RunFolder != null || _lastRunFolder != null;
     }
 
     private static bool IsFailed(TestTreeNode test) => test.State is "failed" or "error" or "timeout";
@@ -573,6 +599,8 @@ public partial class TestRunnerControl : UserControl, IDisposable
     {
         bool session = ShowSessionLog.IsChecked == true || test?.IsTest != true;
         ResultBanner.DataContext = session ? null : test;
+        FailurePanel.Visibility = !session && !string.IsNullOrEmpty(test?.Failure) ? Visibility.Visible : Visibility.Collapsed;
+        FailureText.Text = !session ? test?.Failure ?? "" : "";
         SessionLog.Visibility = session ? Visibility.Visible : Visibility.Collapsed;
         TestOutput.Visibility = session ? Visibility.Collapsed : Visibility.Visible;
         OutputTitle.Text = session ? "Session log" : test!.Name;
@@ -583,14 +611,14 @@ public partial class TestRunnerControl : UserControl, IDisposable
         SourceButton.Content = session ? "" : $"{Path.GetFileName(test!.FilePath)}:{test.Line}";
         SourceButton.ToolTip = test?.FilePath;
         OutputEmpty.Visibility = !session && test!.OutputBuffer.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        OutputEmpty.Text = test?.State == "in-progress" ? "Waiting for test output…" : test?.State is "discovered" or "queued" ? "Run this test to see its output." : "This test did not write any output.";
+        OutputEmpty.Text = test?.State == "queued" ? "Waiting for the build and test host…" : test?.State == "in-progress" ? "Waiting for test output…" : test?.State == "discovered" ? "Run this test to see its output." : "This test did not write any output.";
         if (session) { _displayedTest = null; return; }
         bool changedSelection = !ReferenceEquals(_displayedTest, test);
         _displayedTest = test;
         bool followOutput = TestOutput.VerticalOffset >= TestOutput.ExtentHeight - TestOutput.ViewportHeight - 1;
         TestOutput.SetBuffer(test!.OutputBuffer);
         if (changedSelection) { TestOutput.ScrollToHome(); TestOutput.ScrollToHorizontalOffset(0); }
-        else if (followOutput) TestOutput.ScrollToEnd();
+        else if (followOutput && FollowOutput.IsChecked == true) TestOutput.ScrollToEnd();
     }
 
     private void OnLogViewChanged(object sender, RoutedEventArgs e) { ShowOutput(Tests.SelectedItem as TestTreeNode); UpdateChrome(); }
@@ -652,6 +680,73 @@ public partial class TestRunnerControl : UserControl, IDisposable
     {
         if (TestOutput == null || SessionLog == null) return;
         TestOutput.TextWrapping = SessionLog.TextWrapping = WrapOutput.IsChecked == true ? TextWrapping.Wrap : TextWrapping.NoWrap;
+    }
+    private void OnFindOutput(object sender, RoutedEventArgs e)
+        => SearchOutput(false);
+
+    private void OnFindPreviousOutput(object sender, RoutedEventArgs e) => SearchOutput(true);
+
+    private void OnOutputSearchChanged(object sender, TextChangedEventArgs e)
+    {
+        if (OutputSearchResult != null) OutputSearchResult.Text = "";
+    }
+
+    private void OnOutputSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        SearchOutput((Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+    }
+
+    private void SearchOutput(bool previous)
+    {
+        if (string.IsNullOrEmpty(OutputSearch.Text)) { OutputSearchResult.Text = ""; return; }
+        FollowOutput.IsChecked = false;
+        ShowFullLog.IsChecked = true;
+        OutputSearchResult.Text = (SessionLog.Visibility == Visibility.Visible ? SessionLog : TestOutput).FindNext(OutputSearch.Text, previous);
+    }
+
+    private void OnRerunFailed(object sender, RoutedEventArgs e) =>
+        RunEventAsync(() => RunAsync(false, false, selection: _cases.Values.Where(IsFailed).ToArray()));
+
+    private void OnOpenRunFolder(object sender, RoutedEventArgs e) => RunEventAsync(async () =>
+    {
+        string? folder = (Tests.SelectedItem as TestTreeNode)?.RunFolder ?? _lastRunFolder;
+        if (folder == null) return;
+        if (await _worker.PathKindAsync(folder) != "directory") { Log("Run artifacts have expired or were removed."); return; }
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + folder + "\"") { UseShellExecute = false });
+    });
+
+    private void OnCopyException(object sender, RoutedEventArgs e)
+    {
+        if (Tests.SelectedItem is not TestTreeNode test || test.Failure.Length == 0) return;
+        try { Clipboard.SetText(test.Failure); }
+        catch (System.Runtime.InteropServices.COMException ex) { Log(ex.Message); }
+    }
+
+    private void OnJumpToFailure(object sender, RoutedEventArgs e)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        if (Tests.SelectedItem is not TestTreeNode test) return;
+        var source = OutputSourceLinks.Parse(test.Failure).FirstOrDefault();
+        if (source != null) NavigateToOutputSource(source);
+        else NavigateToSelectedTest();
+    }
+    private void OnFullLogChanged(object sender, RoutedEventArgs e)
+    {
+        if (TestOutput == null || SessionLog == null || RefreshFullLog == null) return;
+        bool full = ShowFullLog.IsChecked == true;
+        TestOutput.FullLog = SessionLog.FullLog = full;
+        RefreshFullLog.Visibility = full ? Visibility.Visible : Visibility.Collapsed;
+        var output = SessionLog.Visibility == Visibility.Visible ? SessionLog : TestOutput;
+        if (full) output.ScrollToHome();
+        else output.ScrollToEnd();
+    }
+
+    private void OnRefreshFullLog(object sender, RoutedEventArgs e)
+    {
+        var output = SessionLog.Visibility == Visibility.Visible ? SessionLog : TestOutput;
+        output.RefreshLog();
     }
     private void OnOpenSource(object sender, RoutedEventArgs e)
     {
@@ -766,4 +861,3 @@ public partial class TestRunnerControl : UserControl, IDisposable
         _tasks.Dispose();
     }
 }
-

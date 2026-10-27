@@ -36,6 +36,9 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
     }
 
     public string Name => _name;
+    public string Failure { get; private set; } = "";
+    public string? RunFolder { get; set; }
+    public string PreparationPhase { get; set; } = "Queued";
     public string DisplayName => !IsTest && Name != Module.DisplayName ? Name.Substring(Name.LastIndexOf('.') + 1) : Name;
     public TestModule Module { get; private set; }
     public DateTime? LastRunUtc { get; private set; }
@@ -74,13 +77,13 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
         Changed(nameof(DurationLabel));
         return true;
     }
-    public string StateLabel => State switch { "" or "discovered" or "not-run" => "Not run", "in-progress" => "Running", _ => char.ToUpperInvariant(State[0]) + State.Substring(1) };
+    public string StateLabel => State switch { "" or "discovered" or "not-run" => "Not run", "queued" => PreparationPhase, "in-progress" => "Running", _ => char.ToUpperInvariant(State[0]) + State.Substring(1) };
     public string Output { get => OutputBuffer.GetText(); private set { OutputBuffer.Clear(); OutputBuffer.Append(value); Changed(); } }
     public int PassedCount => IsTest ? (State == "passed" ? 1 : 0) : _passed;
     public int FailedCount => IsTest ? (State is "failed" or "error" or "timeout" ? 1 : 0) : _failed;
     public int SkippedCount => IsTest ? (State == "skipped" ? 1 : 0) : _skipped;
-    public string Label => IsTest ? $"{Symbol}  {Name}{(_duration.HasValue ? $"  ({_duration:0.##} ms)" : "")}" : Name;
-    public string DurationLabel => !_duration.HasValue ? "" : _duration.Value >= 1000 ? $"{_duration.Value / 1000:0.##} s" : $"{_duration.Value:0.##} ms";
+    public string Label => IsTest ? $"{Symbol}  {Name}{(_duration.HasValue ? $"  ({DurationLabel})" : "")}" : Name;
+    public string DurationLabel => TestDuration.Format(_duration);
     public string Symbol => State switch
     {
         "passed" => "✓", "failed" or "error" or "timeout" => "✗", "in-progress" => "▶",
@@ -91,17 +94,18 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
     {
         if (IsTest || !_groupDirty) return;
         int count = 0, passed = 0, failed = 0, skipped = 0;
-        bool running = false, cancelled = false, allPassed = Children.Count > 0, allSkipped = Children.Count > 0;
+        bool running = false, queued = false, cancelled = false, allPassed = Children.Count > 0, allSkipped = Children.Count > 0;
         foreach (var child in Children)
         {
             child.RefreshGroup();
             count += child.TestCount; passed += child.PassedCount; failed += child.FailedCount; skipped += child.SkippedCount;
             running |= child.State == "in-progress"; cancelled |= child.State == "cancelled";
+            queued |= child.State == "queued";
             allPassed &= child.State is "passed" or "skipped"; allSkipped &= child.State == "skipped";
         }
         _passed = passed; _failed = failed; _skipped = skipped;
         if (_count != count) { _count = count; Changed(nameof(TestCount)); Changed(nameof(CountLabel)); }
-        State = running ? "in-progress" : failed > 0 ? "failed" : allSkipped ? "skipped" : allPassed ? "passed" : cancelled ? "cancelled" : "discovered";
+        State = running ? "in-progress" : queued ? "queued" : failed > 0 ? "failed" : allSkipped ? "skipped" : allPassed ? "passed" : cancelled ? "cancelled" : "discovered";
         _groupDirty = false;
     }
 
@@ -116,6 +120,9 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
     public void Reset()
     {
         State = "queued";
+        PreparationPhase = "Queued";
+        Failure = "";
+        RunFolder = null;
         _duration = null;
         LastRunUtc = null;
         Output = "";
@@ -136,6 +143,7 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
             Output = length == 0 ? "" : length == OutputBuffer.Length ? OutputBuffer.GetText()
                 : "[Earlier output omitted from cache]\n" + OutputBuffer.GetText(OutputBuffer.Length - length),
             Duration = _duration, LastRunUtc = LastRunUtc, IsExpanded = IsExpanded
+            , Failure = Failure, RunFolder = RunFolder
         };
         foreach (var child in Children) snapshot.Children.Add(child.Capture(ref outputBudget));
         return snapshot;
@@ -147,6 +155,7 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
         {
             FilePath = snapshot.FilePath, Line = snapshot.Line, State = snapshot.State,
             Output = snapshot.Output, _duration = snapshot.Duration, LastRunUtc = snapshot.LastRunUtc, IsExpanded = snapshot.IsExpanded
+            , Failure = snapshot.Failure, RunFolder = snapshot.RunFolder
         };
         foreach (var child in snapshot.Children) node.Children.Add(Restore(child));
         node.RefreshGroup();
@@ -161,6 +170,8 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
         Line = update.LineStart ?? Line;
         if (!discovery)
         {
+            if (!string.IsNullOrEmpty(update.ErrorMessage) || !string.IsNullOrEmpty(update.ErrorStackTrace))
+                Failure = string.Join(Environment.NewLine, new[] { update.ErrorMessage, update.ErrorStackTrace }.Where(s => !string.IsNullOrEmpty(s)));
             State = update.ExecutionState ?? State;
             if (update.DurationInMilliseconds.HasValue && update.DurationInMilliseconds != _duration)
             { _duration = update.DurationInMilliseconds; Changed(nameof(DurationLabel)); Changed(nameof(Label)); }
@@ -169,9 +180,9 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
             if (detail is { Length: > 0 })
             {
                 // Updates can contain a complete output snapshot; don't duplicate it when a later state repeats it.
-                if (!OutputBuffer.EndsWith(detail))
+                if (update.OutputIsDelta || !OutputBuffer.EndsWith(detail))
                 {
-                    if (OutputBuffer.Length > 0) OutputBuffer.Append(Environment.NewLine);
+                    if (!update.OutputIsDelta && OutputBuffer.Length > 0) OutputBuffer.Append(Environment.NewLine);
                     OutputBuffer.Append(detail);
                     Changed(nameof(Output));
                 }

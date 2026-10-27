@@ -1,171 +1,118 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Media;
 using Microsoft.VisualStudio.PlatformUI;
 
 namespace StudioUtil.Testing;
 
-public sealed class LinkedTestOutput : RichTextBox
+public sealed class LinkedTestOutput : UserControl
 {
     private readonly BoundedTextBuffer _owned = new();
+    private readonly ObservableCollection<OutputLogEntry> _lines = new();
+    private readonly ListBox _list;
     private BoundedTextBuffer? _source;
-    private long _version = -1;
-    private long _removed;
-    private long _generation;
+    private long _version = -1, _generation, _removed;
     private int _length;
-    private string _tail = "";
-    private Paragraph _paragraph = new() { Margin = new Thickness(0) };
-    private Inline? _tailMarker;
-    private int _renderedCharacters;
-    private int _renderedLines;
-    private readonly Queue<(Paragraph Paragraph, int Length)> _completed = new();
-    private Paragraph? _omission;
-    private TextWrapping _wrapping = TextWrapping.NoWrap;
-    private double _textWidth;
+    private bool _fullLog;
+    private TextWrapping _wrapping;
+    private ScrollViewer? _scroll;
     internal event Action<OutputSourceLink>? SourceClicked;
 
     public LinkedTestOutput()
     {
-        IsReadOnly = true;
-        IsUndoEnabled = false;
-        IsDocumentEnabled = true;
-        BorderThickness = new Thickness(0);
-        Background = Brushes.Transparent;
-        SetResourceReference(ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
-        Document.PagePadding = new Thickness(0);
-        Document.ColumnWidth = double.PositiveInfinity;
-        SizeChanged += (_, _) => UpdatePageWidth();
+        _list = new ListBox { ItemsSource = _lines, BorderThickness = new Thickness(0), Background = Brushes.Transparent,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, SelectionMode = SelectionMode.Extended };
+        _list.SetResourceReference(ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
+        VirtualizingPanel.SetIsVirtualizing(_list, true);
+        VirtualizingPanel.SetVirtualizationMode(_list, VirtualizationMode.Recycling);
+        ScrollViewer.SetCanContentScroll(_list, true);
+        ScrollViewer.SetHorizontalScrollBarVisibility(_list, ScrollBarVisibility.Auto);
+        var factory = new FrameworkElementFactory(typeof(OutputLogLine));
+        _list.ItemTemplate = new DataTemplate { VisualTree = factory };
+        var style = new Style(typeof(ListBoxItem));
+        style.Setters.Add(new Setter(PaddingProperty, new Thickness(0)));
+        style.Setters.Add(new Setter(MarginProperty, new Thickness(0)));
+        style.Setters.Add(new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
+        _list.ItemContainerStyle = style;
+        Content = _list;
+        Loaded += (_, _) => { _scroll = FindScroll(_list); RefreshLog(); };
         IsVisibleChanged += (_, _) => { if (IsVisible) SetBuffer(_source ?? _owned); };
     }
 
-    public string Text
-    {
-        get => (_source ?? _owned).GetText();
-        set
-        {
-            _owned.Clear(); _owned.Append(value ?? "");
-            _source = null;
-            SetBuffer(_owned);
-        }
-    }
-
+    public string Text { get => (_source ?? _owned).GetText(); set { _owned.Clear(); _owned.Append(value ?? ""); _source = null; SetBuffer(_owned); } }
     public int TextLength => (_source ?? _owned).Length;
+    public bool FullLog { get => _fullLog; set { if (_fullLog == value) return; _fullLog = value; RefreshLog(); } }
+    public TextWrapping TextWrapping
+    {
+        get => _wrapping;
+        set { if (_wrapping == value) return; _wrapping = value; ScrollViewer.SetHorizontalScrollBarVisibility(_list, value == TextWrapping.Wrap ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto); _list.Items.Refresh(); }
+    }
+    public double VerticalOffset => _scroll?.VerticalOffset ?? 0;
+    public double ExtentHeight => _scroll?.ExtentHeight ?? 0;
+    public double ViewportHeight => _scroll?.ViewportHeight ?? 0;
+    public void ScrollToEnd() => _scroll?.ScrollToEnd();
+    public void ScrollToHome() => _scroll?.ScrollToHome();
+    public void ScrollToHorizontalOffset(double value) => _scroll?.ScrollToHorizontalOffset(value);
+    public void RefreshLog() { _version = -1; SetBuffer(_source ?? _owned); }
+    public void AppendText(string text) { _owned.Append(text); SetBuffer(_owned); }
+    public void Clear() => Text = "";
+    internal void OpenSource(OutputSourceLink source) => SourceClicked?.Invoke(source);
+    internal string FindNext(string query, bool previous = false)
+    {
+        if (string.IsNullOrEmpty(query)) return "";
+        var matches = new List<int>();
+        for (int i = 0; i < _lines.Count; i++)
+            if (_lines[i].Text.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0) matches.Add(i);
+        if (matches.Count == 0) return "No matches";
+        int match = previous ? matches.FindLastIndex(i => i < _list.SelectedIndex) : matches.FindIndex(i => i > _list.SelectedIndex);
+        if (match < 0) match = previous ? matches.Count - 1 : 0;
+        int index = matches[match];
+        _list.SelectedIndex = index; _scroll?.ScrollToVerticalOffset(index);
+        return $"{match + 1} / {matches.Count} lines";
+    }
 
     internal void SetBuffer(BoundedTextBuffer source)
     {
         if (!IsVisible) { _source = source; _version = -1; return; }
         if (ReferenceEquals(_source, source) && _version == source.Version) return;
         bool reset = _version < 0 || !ReferenceEquals(_source, source) || _generation != source.Generation || _removed != source.Removed || source.Length < _length;
-        int delta = reset ? source.Length : source.Length - _length;
-        reset |= delta > OutputDisplayWindow.MaxCharacters || _tail.Length + delta > OutputDisplayWindow.MaxCharacters;
-        string added = source.GetText(reset ? Math.Max(0, source.Length - OutputDisplayWindow.MaxCharacters) : _length);
-        int displayStart = OutputDisplayWindow.Start(added);
-        if (displayStart > 0) { added = added.Substring(displayStart); reset = true; }
-        _source = source; _version = source.Version; _removed = source.Removed; _length = source.Length;
-        _generation = source.Generation;
-        BeginChange();
-        try
+        string added = source.GetText(reset ? (_fullLog ? 0 : Math.Max(0, source.Length - OutputDisplayWindow.MaxCharacters)) : _length);
+        if (reset)
         {
-            if (reset)
-            {
-                Document.Blocks.Clear();
-                _paragraph = new Paragraph { Margin = new Thickness(0) };
-                Document.Blocks.Add(_paragraph);
-                _tail = ""; _tailMarker = null; _textWidth = 0;
-                _renderedCharacters = 0; _renderedLines = 0;
-                _completed.Clear(); _omission = null;
-                if (source.Removed > 0 || source.Length > added.Length)
-                    ShowOmission();
-            }
-            _renderedCharacters += added.Length;
-            while (_tailMarker != null)
-            {
-                var next = _tailMarker.NextInline;
-                _paragraph.Inlines.Remove(_tailMarker);
-                _tailMarker = next;
-            }
-            string pending = _tail + added;
-            int start = 0;
-            for (int i = 0; i < pending.Length; i++)
-            {
-                if (pending[i] != '\n') continue;
-                RenderLine(pending.Substring(start, i - start).TrimEnd('\r'), true);
-                _completed.Enqueue((_paragraph, i - start + 1));
-                _paragraph = new Paragraph { Margin = new Thickness(0) };
-                Document.Blocks.Add(_paragraph);
-                _renderedLines++;
-                start = i + 1;
-            }
-            _tail = pending.Substring(start);
-            // Bound reparsing of pathological output with no newline. Completed prefixes stay plain text.
-            if (_tail.Length > 32_768)
-            {
-                RenderLine(_tail.Substring(0, _tail.Length - 16_384), false);
-                _tail = _tail.Substring(_tail.Length - 16_384);
-            }
-            _tailMarker = new Run();
-            _paragraph.Inlines.Add(_tailMarker);
-            RenderLine(_tail, true);
-            while (_completed.Count > 0 && (_renderedLines > OutputDisplayWindow.MaxLines || _renderedCharacters > OutputDisplayWindow.MaxCharacters))
-            {
-                var old = _completed.Dequeue();
-                Document.Blocks.Remove(old.Paragraph);
-                _renderedCharacters -= old.Length;
-                _renderedLines--;
-                ShowOmission();
-            }
-            UpdatePageWidth();
+            _lines.Clear();
+            if (!_fullLog) added = added.Substring(OutputDisplayWindow.Start(added));
+            if (source.Removed > 0 || source.Length > added.Length) _lines.Add(new OutputLogEntry("Earlier output omitted from this view. Open the run folder for archived logs."));
+            _lines.Add(new OutputLogEntry(""));
         }
-        finally { EndChange(); }
-    }
-
-    private void ShowOmission()
-    {
-        if (_omission != null) return;
-        _omission = new Paragraph(new Run("Showing recent output · Copy includes the retained log"))
-        { Margin = new Thickness(0, 0, 0, 6), FontStyle = FontStyles.Italic };
-        Document.Blocks.InsertBefore(Document.Blocks.FirstBlock, _omission);
-    }
-
-    private void RenderLine(string text, bool parse)
-    {
-        int position = 0;
-        if (parse && text.Length <= 4096)
+        _source = source; _version = source.Version; _generation = source.Generation; _removed = source.Removed; _length = source.Length;
+        string pending = (_lines.Count > 0 ? _lines[_lines.Count - 1].Text : "") + added;
+        int start = 0;
+        bool first = true;
+        for (int i = 0; i < pending.Length; i++)
         {
-            foreach (var source in OutputSourceLinks.Parse(text))
-            {
-                if (source.Start > position) _paragraph.Inlines.Add(new Run(text.Substring(position, source.Start - position)));
-                var link = new Hyperlink(new Run(text.Substring(source.Start, source.Length)))
-                { ToolTip = $"Open {source.Path}, line {source.Line}", Cursor = System.Windows.Input.Cursors.Hand, Tag = source };
-                link.SetResourceReference(TextElement.ForegroundProperty, EnvironmentColors.PanelHyperlinkBrushKey);
-                link.Click += OnSourceClick;
-                _paragraph.Inlines.Add(link);
-                position = source.Start + source.Length;
-            }
+            if (pending[i] != '\n') continue;
+            AddLine(pending.Substring(start, i - start).TrimEnd('\r'), ref first);
+            start = i + 1;
         }
-        if (position < text.Length) _paragraph.Inlines.Add(new Run(text.Substring(position)));
-        // Output uses a monospace font. Avoid shaping every line a second time just
-        // to size the horizontal scrollbar; WPF already shapes it for display.
-        int columns = 0;
-        foreach (char character in text) columns += character == '\t' ? 8 : 1;
-        _textWidth = Math.Max(_textWidth, columns * FontSize + 24);
+        AddLine(pending.Substring(start), ref first);
+        if (!_fullLog) while (_lines.Count > OutputDisplayWindow.MaxLines + 1) _lines.RemoveAt(0);
     }
 
-    private void OnSourceClick(object sender, RoutedEventArgs e)
-    { e.Handled = true; SourceClicked?.Invoke((OutputSourceLink)((Hyperlink)sender).Tag); }
-
-    public TextWrapping TextWrapping
+    private void AddLine(string line, ref bool first)
     {
-        get => _wrapping;
-        set { _wrapping = value; UpdatePageWidth(); }
+        if (first && _lines.Count > 0) _lines[_lines.Count - 1] = new OutputLogEntry(line);
+        else _lines.Add(new OutputLogEntry(line));
+        first = false;
     }
 
-    public new void AppendText(string text) { _owned.Append(text); SetBuffer(_owned); }
-    public void Clear() => Text = "";
-
-    private void UpdatePageWidth() => Document.PageWidth = _wrapping == TextWrapping.NoWrap
-        ? Math.Max(Math.Max(100, ActualWidth - 24), _textWidth) : Math.Max(100, ActualWidth - 24);
+    private static ScrollViewer? FindScroll(DependencyObject parent)
+    {
+        if (parent is ScrollViewer scroll) return scroll;
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        { var found = FindScroll(VisualTreeHelper.GetChild(parent, i)); if (found != null) return found; }
+        return null;
+    }
 }

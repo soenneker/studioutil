@@ -8,6 +8,8 @@ namespace StudioUtil.Testing;
 
 internal sealed class TestSession : ITestSession
 {
+    private readonly Action<string>? _phase;
+    public TestSession(Action<string>? phase = null) => _phase = phase;
     public Task DiscoverAsync(TestModule module, Action<TestNodeUpdate> update, Action<string> log, CancellationToken token) =>
         ExecuteAsync(module, null, true, null, update, log, token);
 
@@ -15,7 +17,7 @@ internal sealed class TestSession : ITestSession
         Action<TestNodeUpdate> update, Action<string> log, CancellationToken token) =>
         ExecuteAsync(module, ids, false, attachDebugger, update, log, token);
 
-    private static async Task ExecuteAsync(TestModule module, IReadOnlyCollection<string>? ids, bool discover,
+    private async Task ExecuteAsync(TestModule module, IReadOnlyCollection<string>? ids, bool discover,
         Func<int, CancellationToken, Task>? attachDebugger, Action<TestNodeUpdate> update, Action<string> log, CancellationToken token)
     {
         var options = new MtpServerClientOptions
@@ -29,9 +31,11 @@ internal sealed class TestSession : ITestSession
         using var client = await MtpServerClient.LaunchAsync(module.AssemblyPath, options, token).ConfigureAwait(false);
         try
         {
+            var outputSnapshots = new TestOutputSnapshots();
             client.TestNodesUpdated += (_, args) =>
             {
-                foreach (var change in args.Changes) update(TestUpdateMapper.Map(change));
+                lock (outputSnapshots)
+                    foreach (var change in args.Changes) update(outputSnapshots.Apply(TestUpdateMapper.Map(change)));
             };
             client.LogReceived += (_, args) => log($"[{args.Level}] {args.Message}");
             client.AttachmentsReceived += (_, args) =>
@@ -51,6 +55,7 @@ internal sealed class TestSession : ITestSession
             }
             else
             {
+                _phase?.Invoke("Running");
                 if (ids != null && ids.Count == 0)
                     throw new InvalidOperationException("No tests were selected.");
                 var result = ids == null ? await client.RunTestsAsync(token).ConfigureAwait(false)

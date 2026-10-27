@@ -6,6 +6,22 @@ namespace StudioUtil.Testing.Tests;
 public sealed class RunnerBufferTests
 {
     [Test]
+    public async Task FailureDetailsSurviveOutputUpdatesAndSessionRestore()
+    {
+        var test = new TestTreeNode("test", new TestModule("project.csproj", "net11.0", "test.dll"), "1");
+        test.Apply(new TestNodeUpdate { ExecutionState = "failed", ErrorMessage = "failure", ErrorStackTrace = "at Test in C:\\src\\test.cs:line 12" });
+        test.Apply(new TestNodeUpdate { StandardOutput = "later output" });
+        test.RunFolder = "C:\\runs\\example";
+        int budget = 1024;
+        var restored = TestTreeNode.Restore(test.Capture(ref budget));
+        await Assert.That(restored.Failure.Contains("failure") && restored.Failure.Contains(":line 12")).IsTrue();
+        await Assert.That(restored.RunFolder).IsEqualTo(test.RunFolder);
+        restored.Reset();
+        await Assert.That(restored.Failure).IsEqualTo("");
+        await Assert.That(restored.RunFolder == null).IsTrue();
+    }
+
+    [Test]
     public async Task CacheCaptureCopiesOnlyItsOutputBudget()
     {
         var test = new TestTreeNode("test", new TestModule("project.csproj", "net11.0", "test.dll"), "1");

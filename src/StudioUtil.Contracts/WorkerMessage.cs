@@ -12,6 +12,7 @@ internal sealed class WorkerMessage
     public string? Path { get; set; }
     public int ProcessId { get; set; }
     public bool Debug { get; set; }
+    public bool Build { get; set; }
     public TestModule? Module { get; set; }
     public List<TestModule>? Modules { get; set; }
     public List<string>? TestIds { get; set; }

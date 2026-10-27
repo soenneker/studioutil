@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using Soenneker.Utils.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Soenneker.Utils.PooledStringBuilders;
 
 namespace StudioUtil.Testing;
 
@@ -13,6 +14,7 @@ internal static class Program
 
     private static async Task Main()
     {
+        WorkerProcessJob.Initialize();
         await using var services = WorkerServices.Create();
         var files = services.GetRequiredService<FileCommands>();
         Console.InputEncoding = new UTF8Encoding(false);
@@ -84,8 +86,16 @@ internal static class Program
         var token = operation.Cancellation.Token;
         var result = new WorkerMessage { Id = request.Id, Kind = "complete" };
         var updates = new List<TestNodeUpdate>();
-        var logs = new StringBuilder();
+        var logs = new List<string>();
+        int logLength = 0;
         var updateLock = new object();
+        RunArtifacts? artifacts = null;
+        Exception? flushError = null;
+        void Phase(string phase)
+        {
+            artifacts?.Log($"[{DateTime.UtcNow:O}] Phase: {phase}");
+            Send(new WorkerMessage { Id = request.Id, Kind = "phase", Text = phase });
+        }
 
         void Flush()
         {
@@ -96,18 +106,25 @@ internal static class Program
                     Send(new WorkerMessage { Id = request.Id, Kind = "updates", Updates = new(updates) });
                     updates.Clear();
                 }
-                if (logs.Length > 0)
+                if (logs.Count > 0)
                 {
-                    Send(new WorkerMessage { Id = request.Id, Kind = "log", Text = logs.ToString().TrimEnd('\r', '\n') });
+                    Send(new WorkerMessage { Id = request.Id, Kind = "log", Text = FormatLogs(logs, logLength) });
                     logs.Clear();
+                    logLength = 0;
                 }
             }
         }
 
-        await using var timer = new Timer(_ => Flush(), null, 50, 50);
+        await using var timer = new Timer(_ =>
+        {
+            try { Flush(); artifacts?.Flush(); }
+            catch (Exception ex) { flushError = ex; operation.Cancel(); }
+        }, null, 50, 50);
 
         void Update(TestNodeUpdate update)
         {
+            update.ObservedUtc = DateTime.UtcNow;
+            artifacts?.Update(update);
             update.StandardOutput = LimitOutput(update.StandardOutput);
             update.StandardError = LimitOutput(update.StandardError);
             update.ErrorMessage = LimitOutput(update.ErrorMessage);
@@ -122,21 +139,31 @@ internal static class Program
 
         void Log(string text)
         {
+            artifacts?.Log(text);
             lock (updateLock)
             {
-                logs.AppendLine(LimitOutput(text));
-                if (logs.Length >= 32_768) Flush();
+                string line = LimitOutput(text)!;
+                logs.Add(line);
+                logLength += line.Length + Environment.NewLine.Length;
+                if (logLength >= 32_768) Flush();
             }
         }
 
         async Task Attach(int pid, CancellationToken cancellation)
         {
+            Phase("Attaching debugger");
             Send(new WorkerMessage { Id = request.Id, Kind = "attach", ProcessId = pid });
-            await operation.Attached.Task.WaitAsync(cancellation);
+            await operation.Attached.Task.WaitAsync(TimeSpan.FromSeconds(30), cancellation);
         }
 
         try
         {
+            if (request.Kind is "run" or "executeRun")
+            {
+                artifacts = await RunArtifacts.CreateAsync(services.GetRequiredService<Soenneker.Utils.File.Abstract.IFileUtil>(),
+                    services.GetRequiredService<Soenneker.Utils.Directory.Abstract.IDirectoryUtil>(), request, token);
+                Send(new WorkerMessage { Id = request.Id, Kind = "artifacts", Path = artifacts.Folder });
+            }
             switch (request.Kind)
             {
                 case "info":
@@ -152,8 +179,15 @@ internal static class Program
                 case "discover":
                     await new TestSession().DiscoverAsync(request.Module!, Update, Log, token);
                     break;
+                case "executeRun":
                 case "run":
-                    await new TestSession().RunAsync(request.Module!, request.TestIds, request.Debug ? Attach : null,
+                    if (request.Build)
+                    {
+                        Phase("Building");
+                        await TestProjectBuilder.BuildModuleAsync(request.Module!, Log, token);
+                    }
+                    Phase("Starting host");
+                    await new TestSession(Phase).RunAsync(request.Module!, request.TestIds, request.Debug ? Attach : null,
                         Update, Log, token);
                     break;
                 case "parse":
@@ -201,11 +235,39 @@ internal static class Program
         finally
         {
             await timer.DisposeAsync();
-            Flush();
+            try
+            {
+                Flush();
+                if (flushError != null) throw new IOException("Could not flush run output.", flushError);
+                if (artifacts != null)
+                {
+                    string? missing = result.Kind == "complete" ? artifacts.MissingResults(request.TestIds) : null;
+                    if (missing != null) { result.Kind = "error"; result.Text = missing; }
+                    artifacts.Log($"[{DateTime.UtcNow:O}] Finished: {result.Kind}\n{result.Text}");
+                    await artifacts.CompleteAsync(result);
+                }
+            }
+            catch (Exception ex) { result.Kind = "error"; result.Text = ex.ToString(); }
+            finally
+            {
+                try { artifacts?.Dispose(); }
+                catch (Exception ex) { result.Kind = "error"; result.Text = ex.ToString(); }
+            }
             Send(result);
             Operations.TryRemove(request.Id, out _);
             operation.Dispose();
         }
+    }
+
+    private static string FormatLogs(List<string> lines, int length)
+    {
+        using var text = new PooledStringBuilder(length);
+        foreach (string line in lines)
+        {
+            text.Append(line);
+            text.Append(Environment.NewLine);
+        }
+        return text.AsSpan().TrimEnd("\r\n".AsSpan()).ToString();
     }
 
     private static string? LimitOutput(string? text) => text?.Length > 65_536

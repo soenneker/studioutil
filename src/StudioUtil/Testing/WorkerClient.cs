@@ -21,7 +21,7 @@ internal sealed class WorkerClient : ITestSession, IDisposable
     }
 
     private Task<WorkerMessage> RequestAsync(WorkerMessage message, CancellationToken token,
-        Action<TestNodeUpdate>? update = null, Action<string>? log = null, Func<int, CancellationToken, Task>? attach = null) => Task.Run(async () =>
+        Action<TestNodeUpdate>? update = null, Action<string>? log = null, Func<int, CancellationToken, Task>? attach = null, Action<WorkerMessage>? progress = null) => Task.Run(async () =>
     {
         token.ThrowIfCancellationRequested();
         WorkerConnection connection;
@@ -35,7 +35,7 @@ internal sealed class WorkerClient : ITestSession, IDisposable
             }
             connection = _connection;
         }
-        return await connection.RequestAsync(message, new WorkerPending { Token = token, Update = update, Log = log, Attach = attach }).ConfigureAwait(false);
+        return await connection.RequestAsync(message, new WorkerPending { Token = token, Update = update, Log = log, Attach = attach, Progress = progress }).ConfigureAwait(false);
     }, token);
 
     public async Task<IReadOnlyList<TestModule>> BuildAsync(string project, Action<string> log, CancellationToken token) =>
@@ -54,6 +54,11 @@ internal sealed class WorkerClient : ITestSession, IDisposable
 
     public async Task<IReadOnlyList<TestDeclaration>> ParseAsync(string file, string text, CancellationToken token) =>
         (await RequestAsync(new WorkerMessage { Kind = "parse", Path = file, Text = text }, token).ConfigureAwait(false)).Declarations!;
+
+    public async Task ExecuteRunAsync(TestModule module, IReadOnlyCollection<string>? ids, bool build,
+        Func<int, CancellationToken, Task>? attach, Action<TestNodeUpdate> update, Action<string> log, Action<WorkerMessage> progress, CancellationToken token) =>
+        await RequestAsync(new WorkerMessage { Kind = "executeRun", Module = module, TestIds = ids?.ToList(), Build = build, Debug = attach != null },
+            token, update, log, attach, progress).ConfigureAwait(false);
 
     public async Task<TestSessionSnapshot?> LoadAsync(string solution, CancellationToken token) =>
         (await RequestAsync(new WorkerMessage { Kind = "load", Path = solution }, token).ConfigureAwait(false)).Snapshot;

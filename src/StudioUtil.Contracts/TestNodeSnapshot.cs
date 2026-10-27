@@ -14,6 +14,8 @@ internal sealed class TestNodeSnapshot
     public int Line { get; set; }
     public string State { get; set; } = "discovered";
     public string Output { get; set; } = "";
+    public string Failure { get; set; } = "";
+    public string? RunFolder { get; set; }
     public double? Duration { get; set; }
     public DateTime? LastRunUtc { get; set; }
     public bool IsExpanded { get; set; }

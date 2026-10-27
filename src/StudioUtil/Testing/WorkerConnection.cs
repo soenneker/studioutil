@@ -95,6 +95,7 @@ internal sealed class WorkerConnection : IDisposable
                 {
                     case "updates": foreach (var update in message.Updates!) pending.Update?.Invoke(update); break;
                     case "log": pending.Log?.Invoke(message.Text!); break;
+                    case "phase": case "artifacts": pending.Progress?.Invoke(message); break;
                     case "attach": _ = AttachAsync(message, pending); break;
                     case "complete": _pending.TryRemove(message.Id, out _); pending.Completion.TrySetResult(message); break;
                     case "cancelled": _pending.TryRemove(message.Id, out _); pending.Completion.TrySetCanceled(); break;
@@ -115,7 +116,9 @@ internal sealed class WorkerConnection : IDisposable
         try
         {
             if (pending.Attach == null) throw new InvalidOperationException("No debugger attachment callback is available.");
-            await pending.Attach(message.ProcessId, pending.Token).ConfigureAwait(false);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(pending.Token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            await pending.Attach(message.ProcessId, timeout.Token).ConfigureAwait(false);
         }
         catch (Exception ex) { error = ex.ToString(); }
         try { Write(new WorkerMessage { Id = message.Id, Kind = "attached", Text = error }); }

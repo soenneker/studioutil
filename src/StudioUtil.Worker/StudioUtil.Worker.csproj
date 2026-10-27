@@ -18,5 +18,6 @@
     <PackageReference Include="Soenneker.Utils.Directory" Version="11.0.970" />
     <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2766" />
     <PackageReference Include="Soenneker.Utils.Process" Version="11.0.1604" />
+    <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="11.0.44" />
   </ItemGroup>
 </Project>

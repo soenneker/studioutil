@@ -2,6 +2,7 @@ namespace StudioUtil.Testing;
 
 internal sealed class TestNodeUpdate
 {
+    public System.DateTime? ObservedUtc { get; set; }
     public string? Uid { get; set; }
     public string? DisplayName { get; set; }
     public string? NodeType { get; set; }
@@ -14,4 +15,5 @@ internal sealed class TestNodeUpdate
     public string? ErrorStackTrace { get; set; }
     public string? StandardOutput { get; set; }
     public string? StandardError { get; set; }
+    public bool OutputIsDelta { get; set; }
 }

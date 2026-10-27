@@ -16,6 +16,7 @@
      <TextBlock Text="{Binding Symbol}" VerticalAlignment="Center">
       <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Opacity" Value="0.6"/>
        <Style.Triggers>
+        <DataTrigger Binding="{Binding State}" Value="queued"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
         <DataTrigger Binding="{Binding State}" Value="passed"><Setter Property="Foreground" Value="#73C991"/><Setter Property="Opacity" Value="1"/></DataTrigger>
         <DataTrigger Binding="{Binding State}" Value="failed"><Setter Property="Foreground" Value="#F48771"/><Setter Property="Opacity" Value="1"/></DataTrigger>
         <DataTrigger Binding="{Binding State}" Value="error"><Setter Property="Foreground" Value="#F48771"/><Setter Property="Opacity" Value="1"/></DataTrigger>
@@ -24,6 +25,25 @@
        </Style.Triggers>
       </Style></TextBlock.Style>
      </TextBlock>
+     <Path Width="12" Height="12" HorizontalAlignment="Left" VerticalAlignment="Center" Stretch="Uniform" Data="M 6,1 A 5,5 0 1 1 1,6" Stroke="#75BEFF" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5" ToolTip="Queued — waiting for build or test host" AutomationProperties.Name="Test queued">
+      <Path.RenderTransform><RotateTransform/></Path.RenderTransform>
+      <Path.Style>
+       <Style TargetType="Path">
+        <Setter Property="Visibility" Value="Collapsed"/>
+        <Style.Triggers>
+         <DataTrigger Binding="{Binding State}" Value="queued"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+         <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+           <Condition Binding="{Binding State}" Value="queued"/>
+           <Condition Binding="{Binding IsVisible, RelativeSource={RelativeSource Self}}" Value="True"/>
+          </MultiDataTrigger.Conditions>
+          <MultiDataTrigger.EnterActions><BeginStoryboard Name="QueuedSpin"><Storyboard Timeline.DesiredFrameRate="20"><DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/></Storyboard></BeginStoryboard></MultiDataTrigger.EnterActions>
+          <MultiDataTrigger.ExitActions><RemoveStoryboard BeginStoryboardName="QueuedSpin"/></MultiDataTrigger.ExitActions>
+         </MultiDataTrigger>
+        </Style.Triggers>
+       </Style>
+      </Path.Style>
+     </Path>
      <Grid Grid.Column="1" HorizontalAlignment="Left">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
@@ -43,6 +63,8 @@
     <Button x:Name="RunButton" Click="OnRun" ToolTip="Run the selected test or group" AutomationProperties.Name="Run selected tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xE768;" Foreground="#73C991"/><TextBlock Text="Run selected"/></StackPanel></Button>
     <Button x:Name="DebugButton" Click="OnDebug" ToolTip="Debug the selected test or group" AutomationProperties.Name="Debug selected tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xEBE8;"/><TextBlock Text="Debug"/></StackPanel></Button>
     <Button x:Name="StopButton" Click="OnStop" IsEnabled="False" ToolTip="Stop discovery or execution" AutomationProperties.Name="Stop tests"><StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ToolbarIcon}" Text="&#xE71A;" Foreground="#F48771"/><TextBlock Text="Stop"/></StackPanel></Button>
+    <Button x:Name="RerunFailedButton" Content="Rerun failed" Click="OnRerunFailed" IsEnabled="False"/>
+    <Button x:Name="OpenRunFolderButton" Content="Open run folder" Click="OnOpenRunFolder" IsEnabled="False"/>
    </WrapPanel>
    <ProgressBar x:Name="BusyProgress" Height="2" IsIndeterminate="True" Visibility="Hidden" BorderThickness="0" Background="Transparent" Foreground="#75BEFF"/>
   </StackPanel>
@@ -79,14 +101,22 @@
    </DockPanel>
    <GridSplitter Grid.Column="1" Width="7" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="Transparent"><GridSplitter.Template><ControlTemplate TargetType="GridSplitter"><Border Background="Transparent"><Border Width="1" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" Opacity="0.12"/></Border></ControlTemplate></GridSplitter.Template></GridSplitter>
    <DockPanel Grid.Column="2" Margin="9,0,0,0">
-    <DockPanel DockPanel.Dock="Top" Height="32" Margin="0,0,0,8">
-     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+    <DockPanel DockPanel.Dock="Top" Margin="4,0,4,6">
+     <Button DockPanel.Dock="Right" Content="↓" Click="OnFindOutput" ToolTip="Next match (Enter)" AutomationProperties.Name="Next log match"/>
+     <Button DockPanel.Dock="Right" Content="↑" Click="OnFindPreviousOutput" ToolTip="Previous match (Shift+Enter)" AutomationProperties.Name="Previous log match"/>
+     <TextBlock DockPanel.Dock="Left" Text="Search logs" VerticalAlignment="Center" Margin="0,0,8,0"/>
+     <TextBlock x:Name="OutputSearchResult" DockPanel.Dock="Bottom" FontSize="11" Opacity="0.65" Margin="0,3,0,0" AutomationProperties.LiveSetting="Polite"/>
+     <TextBox x:Name="OutputSearch" ToolTip="Search all retained log lines, ignoring case. Enter: next. Shift+Enter: previous." AutomationProperties.Name="Search logs" MinWidth="60" KeyDown="OnOutputSearchKeyDown" TextChanged="OnOutputSearchChanged"/>
+    </DockPanel>
+    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+     <TextBlock Text="OUTPUT" FontSize="10" FontWeight="SemiBold" Opacity="0.55" VerticalAlignment="Center" Margin="4,0,12,0"/>
       <ToggleButton x:Name="ShowSessionLog" Content="Session log" Checked="OnLogViewChanged" Unchecked="OnLogViewChanged" ToolTip="Show build and runner diagnostics"/>
+      <ToggleButton x:Name="FollowOutput" Content="Follow" IsChecked="True" ToolTip="Follow new output when scrolled to the bottom"/>
+      <ToggleButton x:Name="ShowFullLog" Content="Full log" Checked="OnFullLogChanged" Unchecked="OnFullLogChanged" ToolTip="Browse and search all retained output. Archived output is available in the run folder." AutomationProperties.Name="Show full retained log"/>
+      <Button x:Name="RefreshFullLog" Content="↻" Width="28" Padding="4" Click="OnRefreshFullLog" Visibility="Collapsed" ToolTip="Refresh the full log" AutomationProperties.Name="Refresh full log"/>
       <ToggleButton x:Name="WrapOutput" Content="↵" Width="28" Padding="4" Checked="OnWrapOutput" Unchecked="OnWrapOutput" ToolTip="Wrap long lines" AutomationProperties.Name="Wrap output"/>
       <Button x:Name="CopyOutputButton" FontFamily="Segoe MDL2 Assets" Content="&#xE8C8;" Width="28" Padding="4" Click="OnCopyOutput" ToolTip="Copy output" AutomationProperties.Name="Copy output"/>
-     </StackPanel>
-     <TextBlock Text="OUTPUT" FontSize="10" FontWeight="SemiBold" Opacity="0.55" VerticalAlignment="Center"/>
-    </DockPanel>
+    </WrapPanel>
     <StackPanel DockPanel.Dock="Top" Margin="4,0,4,12">
      <Border x:Name="ResultBanner" BorderThickness="3,0,0,0" CornerRadius="3" Padding="12,10" Margin="0,0,0,10" AutomationProperties.LiveSetting="Polite">
       <Border.Style>
@@ -127,13 +157,16 @@
       <Button x:Name="SourceButton" HorizontalAlignment="Left" Padding="0,2" Opacity="0.6" Click="OnOpenSource" Visibility="Collapsed"/>
      </DockPanel>
     </StackPanel>
+    <StackPanel x:Name="FailurePanel" DockPanel.Dock="Top" Margin="4,0,4,8" Visibility="Collapsed">
+     <StackPanel Orientation="Horizontal"><Button Content="Jump to failure" Click="OnJumpToFailure"/><Button Content="Copy exception" Click="OnCopyException"/></StackPanel>
+     <TextBox x:Name="FailureText" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="140" VerticalScrollBarVisibility="Auto" FontFamily="Consolas"/>
+    </StackPanel>
     <Grid>
-     <local:LinkedTestOutput x:Name="TestOutput" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Padding="4,4" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
-     <local:LinkedTestOutput x:Name="SessionLog" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Padding="4,4" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+     <local:LinkedTestOutput x:Name="TestOutput" Visibility="Collapsed"  FontFamily="Consolas" FontSize="12" Padding="4,4" TextWrapping="NoWrap" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+     <local:LinkedTestOutput x:Name="SessionLog"  FontFamily="Consolas" FontSize="12" Padding="4,4" TextWrapping="NoWrap" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
      <TextBlock x:Name="OutputEmpty" Margin="4,10" Opacity="0.5" IsHitTestVisible="False" Visibility="Collapsed" TextWrapping="Wrap"/>
     </Grid>
    </DockPanel>
   </Grid>
  </DockPanel>
 </UserControl>
-

@@ -15,6 +15,7 @@
     <Compile Include="../../src/StudioUtil/Testing/ITestSession.cs" Link="Production/ITestSession.cs" />
     <Compile Include="../../src/StudioUtil.Worker/TestSession.cs" Link="Production/TestSession.cs" />
     <Compile Include="../../src/StudioUtil/Testing/TestTreeNode.cs" Link="Production/TestTreeNode.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/TestDuration.cs" />
     <Compile Include="../../src/StudioUtil/Testing/BoundedTextBuffer.cs" Link="Production/BoundedTextBuffer.cs" />
     <Compile Include="../../src/StudioUtil/Testing/PendingLogBuffer.cs" Link="Production/PendingLogBuffer.cs" />
     <PackageReference Include="Soenneker.Utils.File" Version="11.0.2328" />
@@ -33,11 +34,13 @@
     <Compile Include="../../src/StudioUtil.Contracts/WorkerMessage.cs" />
     <Compile Include="../../src/StudioUtil.Contracts/FileCommandRequest.cs" />
     <Compile Include="../../src/StudioUtil.Worker/TestUpdateMapper.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/TestOutputSnapshots.cs" />
     <Compile Include="../../src/StudioUtil.Worker/TestSourceDiscovery.cs" />
     <Compile Include="../../src/StudioUtil/Testing/Worker*.cs" />
     <PackageReference Include="Soenneker.Utils.Process" Version="11.0.1604" />
     <PackageReference Include="Soenneker.Hashing.Sha256" Version="4.0.17" />
     <PackageReference Include="Soenneker.Utils.Json" Version="11.0.2766" />
     <Compile Include="../../src/StudioUtil.Worker/WorkerJsonContext.cs" />
+    <Compile Include="../../src/StudioUtil.Worker/RunArtifacts.cs" />
   </ItemGroup>
 </Project>
