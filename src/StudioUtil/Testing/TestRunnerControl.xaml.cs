@@ -350,7 +350,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
             else
             {
                 ApplySearch();
-                if (_errors > 0) ShowSessionLog.IsChecked = true;
+                if (_errors > 0) LogSource.SelectedIndex = 1;
                 ShowOutput(Tests.SelectedItem as TestTreeNode);
                 Status.Text = $"{(cancelled ? "Cancelled. " : "")}{_cases.Count} tests • {_cases.Values.Count(t => t.State == "passed")} passed • {_cases.Values.Count(IsFailed)} failed • {_cases.Values.Count(t => t.State == "skipped")} skipped"
                     + (_errors > 0 ? $" • {_errors} runner error(s); see Session log" : "");
@@ -597,7 +597,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
 
     private void ShowOutput(TestTreeNode? test)
     {
-        bool session = ShowSessionLog.IsChecked == true || test?.IsTest != true;
+        bool session = LogSource.SelectedIndex == 1 || test?.IsTest != true;
         ResultBanner.DataContext = session ? null : test;
         FailurePanel.Visibility = !session && !string.IsNullOrEmpty(test?.Failure) ? Visibility.Visible : Visibility.Collapsed;
         FailureText.Text = !session ? test?.Failure ?? "" : "";
@@ -621,7 +621,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
         else if (followOutput && FollowOutput.IsChecked == true) TestOutput.ScrollToEnd();
     }
 
-    private void OnLogViewChanged(object sender, RoutedEventArgs e) { ShowOutput(Tests.SelectedItem as TestTreeNode); UpdateChrome(); }
+    private void OnLogViewChanged(object sender, SelectionChangedEventArgs e) { if (TestOutput == null || SessionLog == null) return; ShowOutput(Tests.SelectedItem as TestTreeNode); UpdateChrome(); }
     private static bool SelectTest(ItemsControl parent, TestTreeNode test)
     {
         parent.UpdateLayout();
@@ -665,7 +665,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
     }
     private void OnSelectionChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (e.NewValue is TestTreeNode { IsTest: true }) ShowSessionLog.IsChecked = false;
+        if (e.NewValue is TestTreeNode { IsTest: true }) LogSource.SelectedIndex = 0;
         ShowOutput(e.NewValue as TestTreeNode);
         UpdateChrome();
     }
@@ -702,7 +702,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
     {
         if (string.IsNullOrEmpty(OutputSearch.Text)) { OutputSearchResult.Text = ""; return; }
         FollowOutput.IsChecked = false;
-        ShowFullLog.IsChecked = true;
+        LogRange.SelectedIndex = 1;
         OutputSearchResult.Text = (SessionLog.Visibility == Visibility.Visible ? SessionLog : TestOutput).FindNext(OutputSearch.Text, previous);
     }
 
@@ -732,10 +732,10 @@ public partial class TestRunnerControl : UserControl, IDisposable
         if (source != null) NavigateToOutputSource(source);
         else NavigateToSelectedTest();
     }
-    private void OnFullLogChanged(object sender, RoutedEventArgs e)
+    private void OnFullLogChanged(object sender, SelectionChangedEventArgs e)
     {
         if (TestOutput == null || SessionLog == null || RefreshFullLog == null) return;
-        bool full = ShowFullLog.IsChecked == true;
+        bool full = LogRange.SelectedIndex == 1;
         TestOutput.FullLog = SessionLog.FullLog = full;
         RefreshFullLog.Visibility = full ? Visibility.Visible : Visibility.Collapsed;
         var output = SessionLog.Visibility == Visibility.Visible ? SessionLog : TestOutput;

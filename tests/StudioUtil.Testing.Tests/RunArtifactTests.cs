@@ -14,6 +14,40 @@ namespace StudioUtil.Testing.Tests;
 public sealed class RunArtifactTests
 {
     [Test]
+    public async Task ArchivesBatchSmallWritesAndFlushAtCompletion()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "StudioUtil-batching-" + Guid.NewGuid().ToString("N"));
+        await using var services = new ServiceCollection().AddLogging().AddFileUtilAsSingleton().AddDirectoryUtilAsSingleton().BuildServiceProvider();
+        var files = services.GetRequiredService<IFileUtil>();
+        var directories = services.GetRequiredService<IDirectoryUtil>();
+        try
+        {
+            using var run = await RunArtifacts.CreateAsync(files, directories, new WorkerMessage { Kind = "run" }, CancellationToken.None, root);
+            string log = Path.Combine(run.Folder, "output.log");
+            string events = Path.Combine(run.Folder, "events.jsonl");
+            for (int i = 0; i < 100; i++) run.Log("batched output");
+            run.Update(new TestNodeUpdate { Uid = "test", ExecutionState = "in-progress", StandardOutput = "test output" });
+            run.FlushPending();
+            await Assert.That(new FileInfo(log).Length).IsEqualTo(0L);
+            await Assert.That(new FileInfo(events).Length).IsEqualTo(0L);
+            await Task.Delay(2100);
+            run.FlushPending();
+            await Assert.That(new FileInfo(log).Length > 0).IsTrue();
+            await Assert.That(new FileInfo(events).Length > 0).IsTrue();
+            run.Log("final output");
+            run.Update(new TestNodeUpdate { Uid = "test", ExecutionState = "passed" });
+            await run.CompleteAsync(new WorkerMessage { Kind = "complete" });
+            long flushedLength = new FileInfo(log).Length;
+            run.Dispose();
+            await Assert.That(new FileInfo(log).Length).IsEqualTo(flushedLength);
+            await Assert.That((await File.ReadAllTextAsync(log)).Contains("test output")).IsTrue();
+            await Assert.That((await File.ReadAllTextAsync(log)).Contains("final output")).IsTrue();
+            await Assert.That((await File.ReadAllTextAsync(events)).Contains("passed")).IsTrue();
+        }
+        finally { await directories.Delete(root); }
+    }
+
+    [Test]
     public async Task RetentionPreservesActiveRunsAndPartialResults()
     {
         string root = Path.Combine(Path.GetTempPath(), "StudioUtil-artifacts-" + Guid.NewGuid().ToString("N"));

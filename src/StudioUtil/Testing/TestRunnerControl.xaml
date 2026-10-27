@@ -112,9 +112,13 @@
     </Grid>
     <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
      <TextBlock Text="OUTPUT" FontSize="10" FontWeight="SemiBold" Opacity="0.55" VerticalAlignment="Center" Margin="4,0,12,0"/>
-      <ToggleButton x:Name="ShowSessionLog" Content="Session log" Checked="OnLogViewChanged" Unchecked="OnLogViewChanged" ToolTip="Show build and runner diagnostics"/>
+      <ComboBox x:Name="LogSource" Style="{StaticResource OutputSelector}" SelectedIndex="0" SelectionChanged="OnLogViewChanged" ToolTip="Choose the output source" AutomationProperties.Name="Output source">
+       <ComboBoxItem Content="Selected test"/><ComboBoxItem Content="Session log"/>
+      </ComboBox>
+      <ComboBox x:Name="LogRange" Style="{StaticResource OutputSelector}" SelectedIndex="0" SelectionChanged="OnFullLogChanged" ToolTip="Choose how much output to display" AutomationProperties.Name="Output range">
+       <ComboBoxItem Content="Recent output"/><ComboBoxItem Content="Full retained log"/>
+      </ComboBox>
       <ToggleButton x:Name="FollowOutput" Content="Follow" IsChecked="True" ToolTip="Follow new output when scrolled to the bottom"/>
-      <ToggleButton x:Name="ShowFullLog" Content="Full log" Checked="OnFullLogChanged" Unchecked="OnFullLogChanged" ToolTip="Browse and search all retained output. Archived output is available in the run folder." AutomationProperties.Name="Show full retained log"/>
       <Button x:Name="RefreshFullLog" Content="↻" Width="28" Padding="4" Click="OnRefreshFullLog" Visibility="Collapsed" ToolTip="Refresh the full log" AutomationProperties.Name="Refresh full log"/>
       <ToggleButton x:Name="WrapOutput" Content="↵" Width="28" Padding="4" Checked="OnWrapOutput" Unchecked="OnWrapOutput" ToolTip="Wrap long lines" AutomationProperties.Name="Wrap output"/>
       <Button x:Name="CopyOutputButton" FontFamily="Segoe MDL2 Assets" Content="&#xE8C8;" Width="28" Padding="4" Click="OnCopyOutput" ToolTip="Copy output" AutomationProperties.Name="Copy output"/>

@@ -117,7 +117,7 @@ internal static class Program
 
         await using var timer = new Timer(_ =>
         {
-            try { Flush(); artifacts?.Flush(); }
+            try { Flush(); artifacts?.FlushPending(); }
             catch (Exception ex) { flushError = ex; operation.Cancel(); }
         }, null, 50, 50);
 

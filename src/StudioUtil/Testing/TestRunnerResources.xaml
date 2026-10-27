@@ -23,6 +23,36 @@
  </Style>
  <Style TargetType="Button" BasedOn="{StaticResource RunnerAction}"/>
  <Style TargetType="ToggleButton" BasedOn="{StaticResource RunnerAction}"/>
+ <Style x:Key="OutputSelector" TargetType="ComboBox">
+  <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"/>
+  <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"/>
+  <Setter Property="Margin" Value="0,0,6,0"/>
+  <Setter Property="MinWidth" Value="130"/>
+  <Setter Property="Height" Value="30"/>
+  <Setter Property="ItemContainerStyle"><Setter.Value><Style TargetType="ComboBoxItem">
+   <Setter Property="Padding" Value="10,7"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+    <Border x:Name="Item" Background="Transparent" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border>
+    <ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.CommandBarMouseOverBackgroundGradientBrushKey}}"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter Property="FontWeight" Value="SemiBold"/></Trigger></ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style></Setter.Value></Setter>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+   <Grid>
+    <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Foreground="{TemplateBinding Foreground}">
+     <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+      <Border x:Name="Frame" CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}">
+       <Path Data="M 0,0 L 4,4 L 8,0" Stroke="{TemplateBinding Foreground}" StrokeThickness="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
+      </Border>
+      <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#75BEFF"/></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#75BEFF"/></Trigger></ControlTemplate.Triggers>
+     </ControlTemplate></ToggleButton.Template>
+    </ToggleButton>
+    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" Margin="10,0,28,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+    <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False">
+     <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" BorderThickness="1" Padding="3" CornerRadius="3" TextElement.Foreground="{TemplateBinding Foreground}"><ScrollViewer><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border>
+    </Popup>
+   </Grid>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
  <Style TargetType="TreeViewItem"><Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/><Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/><Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><local:TestItemsPanel/></ItemsPanelTemplate></Setter.Value></Setter>
   <Setter Property="Template"><Setter.Value>
    <ControlTemplate TargetType="TreeViewItem">

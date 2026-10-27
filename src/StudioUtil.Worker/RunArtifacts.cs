@@ -19,6 +19,9 @@ internal sealed class RunArtifacts : IDisposable
     private readonly Dictionary<string, TestNodeUpdate> _results = new();
     private readonly IFileUtil _fileUtil;
     private readonly DateTime _started = DateTime.UtcNow;
+    private long _lastFlush = System.Diagnostics.Stopwatch.GetTimestamp();
+    private bool _eventsDirty;
+    private bool _logDirty;
     public string Folder { get; }
 
     private RunArtifacts(string folder, IFileUtil fileUtil)
@@ -85,7 +88,11 @@ internal sealed class RunArtifacts : IDisposable
 
     public void Log(string text)
     {
-        lock (_gate) _log.WriteLine(text);
+        lock (_gate)
+        {
+            _log.WriteLine(text);
+            _logDirty = true;
+        }
     }
 
     public void Update(TestNodeUpdate update)
@@ -93,6 +100,7 @@ internal sealed class RunArtifacts : IDisposable
         lock (_gate)
         {
             _events.WriteLine(JsonSerializer.Serialize(update, WorkerJsonContext.Default.TestNodeUpdate));
+            _eventsDirty = true;
             if (update.Uid != null && update.NodeType != "group")
             {
                 _results.TryGetValue(update.Uid, out var old);
@@ -101,12 +109,40 @@ internal sealed class RunArtifacts : IDisposable
                     FilePath = update.FilePath ?? old?.FilePath, LineStart = update.LineStart ?? old?.LineStart,
                     ErrorMessage = update.ErrorMessage ?? old?.ErrorMessage, ErrorStackTrace = update.ErrorStackTrace ?? old?.ErrorStackTrace };
             }
-            foreach (var text in new[] { update.StandardOutput, update.StandardError, update.ErrorMessage, update.ErrorStackTrace })
-                if (!string.IsNullOrEmpty(text)) _log.WriteLine($"[{update.Uid}] {text}");
+            WriteOutput(update.Uid, update.StandardOutput);
+            WriteOutput(update.Uid, update.StandardError);
+            WriteOutput(update.Uid, update.ErrorMessage);
+            WriteOutput(update.Uid, update.ErrorStackTrace);
         }
     }
 
-    public void Flush() { lock (_gate) { _events.Flush(); _log.Flush(); } }
+    private void WriteOutput(string? uid, string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        _log.Write('[');
+        _log.Write(uid);
+        _log.Write("] ");
+        _log.WriteLine(text);
+        _logDirty = true;
+    }
+
+    // StreamWriter drains full 64K buffers itself. Only flush partial buffers on this
+    // slower cadence, independently of the 50ms UI updates. Memory remains bounded.
+    public void FlushPending()
+    {
+        lock (_gate)
+        {
+            if (System.Diagnostics.Stopwatch.GetElapsedTime(_lastFlush) < TimeSpan.FromSeconds(2)) return;
+            FlushCore();
+        }
+    }
+
+    private void FlushCore()
+    {
+        if (_eventsDirty) { _events.Flush(); _eventsDirty = false; }
+        if (_logDirty) { _log.Flush(); _logDirty = false; }
+        _lastFlush = System.Diagnostics.Stopwatch.GetTimestamp();
+    }
 
     public string? MissingResults(IReadOnlyCollection<string>? ids)
     {
@@ -118,7 +154,7 @@ internal sealed class RunArtifacts : IDisposable
 
     public async Task CompleteAsync(WorkerMessage result)
     {
-        Flush();
+        lock (_gate) FlushCore();
         foreach (var test in _results.Values)
             if (test.ExecutionState is null or "queued" or "in-progress" or "discovered")
                 test.ExecutionState = result.Kind == "cancelled" ? "cancelled" : "error";
