@@ -1,5 +1,5 @@
 using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -19,7 +19,10 @@ public sealed class LinkedTestOutput : RichTextBox
     private string _tail = "";
     private Paragraph _paragraph = new() { Margin = new Thickness(0) };
     private Inline? _tailMarker;
-    private Typeface? _typeface;
+    private int _renderedCharacters;
+    private int _renderedLines;
+    private readonly Queue<(Paragraph Paragraph, int Length)> _completed = new();
+    private Paragraph? _omission;
     private TextWrapping _wrapping = TextWrapping.NoWrap;
     private double _textWidth;
     internal event Action<OutputSourceLink>? SourceClicked;
@@ -35,6 +38,7 @@ public sealed class LinkedTestOutput : RichTextBox
         Document.PagePadding = new Thickness(0);
         Document.ColumnWidth = double.PositiveInfinity;
         SizeChanged += (_, _) => UpdatePageWidth();
+        IsVisibleChanged += (_, _) => { if (IsVisible) SetBuffer(_source ?? _owned); };
     }
 
     public string Text
@@ -52,9 +56,14 @@ public sealed class LinkedTestOutput : RichTextBox
 
     internal void SetBuffer(BoundedTextBuffer source)
     {
+        if (!IsVisible) { _source = source; _version = -1; return; }
         if (ReferenceEquals(_source, source) && _version == source.Version) return;
-        bool reset = !ReferenceEquals(_source, source) || _generation != source.Generation || _removed != source.Removed || source.Length < _length;
-        string added = source.GetText(reset ? 0 : _length);
+        bool reset = _version < 0 || !ReferenceEquals(_source, source) || _generation != source.Generation || _removed != source.Removed || source.Length < _length;
+        int delta = reset ? source.Length : source.Length - _length;
+        reset |= delta > OutputDisplayWindow.MaxCharacters || _tail.Length + delta > OutputDisplayWindow.MaxCharacters;
+        string added = source.GetText(reset ? Math.Max(0, source.Length - OutputDisplayWindow.MaxCharacters) : _length);
+        int displayStart = OutputDisplayWindow.Start(added);
+        if (displayStart > 0) { added = added.Substring(displayStart); reset = true; }
         _source = source; _version = source.Version; _removed = source.Removed; _length = source.Length;
         _generation = source.Generation;
         BeginChange();
@@ -66,8 +75,12 @@ public sealed class LinkedTestOutput : RichTextBox
                 _paragraph = new Paragraph { Margin = new Thickness(0) };
                 Document.Blocks.Add(_paragraph);
                 _tail = ""; _tailMarker = null; _textWidth = 0;
-                if (source.Removed > 0) _paragraph.Inlines.Add(new Run("[Earlier output omitted]\n"));
+                _renderedCharacters = 0; _renderedLines = 0;
+                _completed.Clear(); _omission = null;
+                if (source.Removed > 0 || source.Length > added.Length)
+                    ShowOmission();
             }
+            _renderedCharacters += added.Length;
             while (_tailMarker != null)
             {
                 var next = _tailMarker.NextInline;
@@ -79,7 +92,11 @@ public sealed class LinkedTestOutput : RichTextBox
             for (int i = 0; i < pending.Length; i++)
             {
                 if (pending[i] != '\n') continue;
-                RenderLine(pending.Substring(start, i - start + 1), true);
+                RenderLine(pending.Substring(start, i - start).TrimEnd('\r'), true);
+                _completed.Enqueue((_paragraph, i - start + 1));
+                _paragraph = new Paragraph { Margin = new Thickness(0) };
+                Document.Blocks.Add(_paragraph);
+                _renderedLines++;
                 start = i + 1;
             }
             _tail = pending.Substring(start);
@@ -92,15 +109,31 @@ public sealed class LinkedTestOutput : RichTextBox
             _tailMarker = new Run();
             _paragraph.Inlines.Add(_tailMarker);
             RenderLine(_tail, true);
+            while (_completed.Count > 0 && (_renderedLines > OutputDisplayWindow.MaxLines || _renderedCharacters > OutputDisplayWindow.MaxCharacters))
+            {
+                var old = _completed.Dequeue();
+                Document.Blocks.Remove(old.Paragraph);
+                _renderedCharacters -= old.Length;
+                _renderedLines--;
+                ShowOmission();
+            }
             UpdatePageWidth();
         }
         finally { EndChange(); }
     }
 
+    private void ShowOmission()
+    {
+        if (_omission != null) return;
+        _omission = new Paragraph(new Run("Showing recent output · Copy includes the retained log"))
+        { Margin = new Thickness(0, 0, 0, 6), FontStyle = FontStyles.Italic };
+        Document.Blocks.InsertBefore(Document.Blocks.FirstBlock, _omission);
+    }
+
     private void RenderLine(string text, bool parse)
     {
         int position = 0;
-        if (parse)
+        if (parse && text.Length <= 4096)
         {
             foreach (var source in OutputSourceLinks.Parse(text))
             {
@@ -114,10 +147,11 @@ public sealed class LinkedTestOutput : RichTextBox
             }
         }
         if (position < text.Length) _paragraph.Inlines.Add(new Run(text.Substring(position)));
-        _typeface ??= new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
-        if (text.Length > 0)
-            _textWidth = Math.Max(_textWidth, new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                _typeface, FontSize, Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip).WidthIncludingTrailingWhitespace + 24);
+        // Output uses a monospace font. Avoid shaping every line a second time just
+        // to size the horizontal scrollbar; WPF already shapes it for display.
+        int columns = 0;
+        foreach (char character in text) columns += character == '\t' ? 8 : 1;
+        _textWidth = Math.Max(_textWidth, columns * FontSize + 24);
     }
 
     private void OnSourceClick(object sender, RoutedEventArgs e)

@@ -72,7 +72,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
         menu.Items.Add(copy);
         Tests.ContextMenu = menu;
         Tests.ItemsSource = _roots;
-        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Background, (_, _) => Drain(), Dispatcher);
+        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => Drain(), Dispatcher);
         _timer.Stop();
         _searchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
         _searchTimer.Tick += (_, _) => { _searchTimer.Stop(); ApplySearch(); };
@@ -471,7 +471,12 @@ public partial class TestRunnerControl : UserControl, IDisposable
     private void Drain()
     {
         // Large builds and discovery batches must yield to input and layout between updates.
-        for (int count = 0; count < 64 && _pending.TryTake(out var item); count++) ApplyUpdate(item.Module, item.Update, item.Discovery);
+        long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 125;
+        for (int count = 0; count < 64 && _pending.TryTake(out var item); count++)
+        {
+            ApplyUpdate(item.Module, item.Update, item.Discovery);
+            if (System.Diagnostics.Stopwatch.GetTimestamp() >= deadline) break;
+        }
         _runningTests.RemoveWhere(static test => !test.RefreshRunningDuration());
         if (Tests.SelectedItem is TestTreeNode { State: "in-progress" } running)
             OutputDuration.Text = running.DurationLabel;
@@ -482,7 +487,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
         {
             bool follow = SessionLog.VerticalOffset >= SessionLog.ExtentHeight - SessionLog.ViewportHeight - 2;
             SessionLog.AppendText(text);
-            if (follow) SessionLog.ScrollToEnd();
+            if (follow && SessionLog.IsVisible) SessionLog.ScrollToEnd();
         }
         UpdateChrome();
     }
@@ -567,6 +572,7 @@ public partial class TestRunnerControl : UserControl, IDisposable
     private void ShowOutput(TestTreeNode? test)
     {
         bool session = ShowSessionLog.IsChecked == true || test?.IsTest != true;
+        ResultBanner.DataContext = session ? null : test;
         SessionLog.Visibility = session ? Visibility.Visible : Visibility.Collapsed;
         TestOutput.Visibility = session ? Visibility.Collapsed : Visibility.Visible;
         OutputTitle.Text = session ? "Session log" : test!.Name;
@@ -760,3 +766,4 @@ public partial class TestRunnerControl : UserControl, IDisposable
         _tasks.Dispose();
     }
 }
+

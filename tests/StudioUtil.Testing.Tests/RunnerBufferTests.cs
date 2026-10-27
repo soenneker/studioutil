@@ -6,6 +6,37 @@ namespace StudioUtil.Testing.Tests;
 public sealed class RunnerBufferTests
 {
     [Test]
+    public async Task CacheCaptureCopiesOnlyItsOutputBudget()
+    {
+        var test = new TestTreeNode("test", new TestModule("project.csproj", "net11.0", "test.dll"), "1");
+        int warmupBudget = 0;
+        test.Capture(ref warmupBudget);
+        test.OutputBuffer.Append(new string('x', 900000));
+        int budget = 1024;
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        var snapshot = test.Capture(ref budget);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        await Assert.That(allocated < 20000).IsTrue();
+        await Assert.That(snapshot.Output.EndsWith(new string('x', 1024), StringComparison.Ordinal)).IsTrue();
+        await Assert.That(budget).IsEqualTo(0);
+        await Assert.That(test.OutputBuffer.Length).IsEqualTo(900000);
+    }
+
+    [Test]
+    public async Task DisplayWindowBoundsFloodsWithoutTruncatingRetainedOutput()
+    {
+        string flood = string.Concat(System.Linq.Enumerable.Repeat("log line\n", 10000));
+        var retained = new BoundedTextBuffer();
+        retained.Append(flood);
+        string shown = flood.Substring(OutputDisplayWindow.Start(flood));
+        await Assert.That(shown.Length <= OutputDisplayWindow.MaxCharacters).IsTrue();
+        await Assert.That(System.Linq.Enumerable.Count(shown, c => c == '\n') <= OutputDisplayWindow.MaxLines).IsTrue();
+        await Assert.That(retained.GetText()).IsEqualTo(flood);
+        string longLine = new('x', 100000);
+        await Assert.That(longLine.Length - OutputDisplayWindow.Start(longLine)).IsEqualTo(OutputDisplayWindow.MaxCharacters);
+    }
+
+    [Test]
     public async Task RunningDurationTicksThenKeepsTheReportedResult()
     {
         var test = new TestTreeNode("test", new TestModule("project.csproj", "net11.0", "test.dll"), "1");

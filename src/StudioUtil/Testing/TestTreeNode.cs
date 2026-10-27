@@ -46,7 +46,7 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
     public bool IsExpanded { get => _expanded; set { if (_expanded == value) return; _expanded = value; Changed(); } }
     public bool IsVisible { get => _visible; set { if (_visible == value) return; _visible = value; Changed(); } }
     public int TestCount => IsTest ? 1 : _count;
-    public string CountLabel => IsTest ? "" : $"{TestCount}";
+    public string CountLabel => IsTest ? "" : $"[{TestCount}]";
     public ObservableCollection<TestTreeNode> Children { get; } = new();
     public string State
     {
@@ -127,13 +127,14 @@ internal sealed class TestTreeNode : INotifyPropertyChanged
 
     public TestNodeSnapshot Capture(ref int outputBudget)
     {
-        int length = Math.Min(Output.Length, Math.Min(64 * 1024, outputBudget));
+        int length = Math.Min(OutputBuffer.Length, Math.Min(64 * 1024, outputBudget));
         outputBudget -= length;
         var snapshot = new TestNodeSnapshot
         {
             Name = Name, ProjectPath = Module.ProjectPath, Framework = Module.Framework, AssemblyPath = Module.AssemblyPath,
             Uid = Uid, FilePath = FilePath, Line = Line, State = State is "queued" or "in-progress" ? "cancelled" : State,
-            Output = length == Output.Length ? Output : "[Earlier output omitted from cache]\n" + Output.Substring(Output.Length - length),
+            Output = length == 0 ? "" : length == OutputBuffer.Length ? OutputBuffer.GetText()
+                : "[Earlier output omitted from cache]\n" + OutputBuffer.GetText(OutputBuffer.Length - length),
             Duration = _duration, LastRunUtc = LastRunUtc, IsExpanded = IsExpanded
         };
         foreach (var child in Children) snapshot.Children.Add(child.Capture(ref outputBudget));

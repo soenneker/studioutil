@@ -22,6 +22,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.14" />
     <Compile Include="../../src/StudioUtil/Testing/OutputSourceLink.cs" Link="Production/OutputSourceLink.cs" />
     <Compile Include="../../src/StudioUtil/Testing/OutputSourceLinks.cs" Link="Production/OutputSourceLinks.cs" />
+    <Compile Include="../../src/StudioUtil/Testing/OutputDisplayWindow.cs" />
     <Compile Include="../../src/StudioUtil.Worker/TestSessionCache.cs" Link="Production/TestSessionCache.cs" />
     <Compile Include="../../src/StudioUtil.Contracts/TestSessionSnapshot.cs" Link="Production/TestSessionSnapshot.cs" />
     <Compile Include="../../src/StudioUtil.Contracts/TestNodeSnapshot.cs" Link="Production/TestNodeSnapshot.cs" />
