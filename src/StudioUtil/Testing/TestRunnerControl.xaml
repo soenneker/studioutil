@@ -101,13 +101,15 @@
    </DockPanel>
    <GridSplitter Grid.Column="1" Width="7" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="Transparent"><GridSplitter.Template><ControlTemplate TargetType="GridSplitter"><Border Background="Transparent"><Border Width="1" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" Opacity="0.12"/></Border></ControlTemplate></GridSplitter.Template></GridSplitter>
    <DockPanel Grid.Column="2" Margin="9,0,0,0">
-    <DockPanel DockPanel.Dock="Top" Margin="4,0,4,6">
-     <Button DockPanel.Dock="Right" Content="↓" Click="OnFindOutput" ToolTip="Next match (Enter)" AutomationProperties.Name="Next log match"/>
-     <Button DockPanel.Dock="Right" Content="↑" Click="OnFindPreviousOutput" ToolTip="Previous match (Shift+Enter)" AutomationProperties.Name="Previous log match"/>
-     <TextBlock DockPanel.Dock="Left" Text="Search logs" VerticalAlignment="Center" Margin="0,0,8,0"/>
-     <TextBlock x:Name="OutputSearchResult" DockPanel.Dock="Bottom" FontSize="11" Opacity="0.65" Margin="0,3,0,0" AutomationProperties.LiveSetting="Polite"/>
-     <TextBox x:Name="OutputSearch" ToolTip="Search all retained log lines, ignoring case. Enter: next. Shift+Enter: previous." AutomationProperties.Name="Search logs" MinWidth="60" KeyDown="OnOutputSearchKeyDown" TextChanged="OnOutputSearchChanged"/>
-    </DockPanel>
+    <Grid DockPanel.Dock="Top" Margin="4,0,4,8">
+     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+     <TextBlock Text="Search logs" VerticalAlignment="Center" Margin="0,0,10,0"/>
+     <TextBox x:Name="OutputSearch" Grid.Column="1" Style="{StaticResource LogSearchBox}" ToolTip="Enter: next match · Shift+Enter: previous" AutomationProperties.Name="Search logs" MinWidth="60" KeyDown="OnOutputSearchKeyDown" TextChanged="OnOutputSearchChanged"/>
+     <Button Grid.Column="2" Content="↑" Click="OnFindPreviousOutput" ToolTip="Previous match (Shift+Enter)" AutomationProperties.Name="Previous log match"/>
+     <Button Grid.Column="3" Content="↓" Click="OnFindOutput" ToolTip="Next match (Enter)" AutomationProperties.Name="Next log match"/>
+     <TextBlock x:Name="OutputSearchResult" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" FontSize="11" Opacity="0.65" Margin="0,3,0,0" AutomationProperties.LiveSetting="Polite"/>
+    </Grid>
     <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
      <TextBlock Text="OUTPUT" FontSize="10" FontWeight="SemiBold" Opacity="0.55" VerticalAlignment="Center" Margin="4,0,12,0"/>
       <ToggleButton x:Name="ShowSessionLog" Content="Session log" Checked="OnLogViewChanged" Unchecked="OnLogViewChanged" ToolTip="Show build and runner diagnostics"/>

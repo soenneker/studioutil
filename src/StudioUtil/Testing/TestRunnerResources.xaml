@@ -59,6 +59,26 @@
    <ControlTemplate TargetType="TextBox"><Border Background="{TemplateBinding Background}"><ScrollViewer x:Name="PART_ContentHost"/></Border></ControlTemplate>
   </Setter.Value></Setter>
  </Style>
+ <Style x:Key="LogSearchBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+  <Setter Property="Height" Value="32"/>
+  <Setter Property="Padding" Value="9,0"/>
+  <Setter Property="VerticalContentAlignment" Value="Center"/>
+  <Setter Property="BorderBrush" Value="#707070"/>
+  <Setter Property="BorderThickness" Value="1"/>
+  <Setter Property="Template"><Setter.Value>
+   <ControlTemplate TargetType="TextBox">
+    <Border x:Name="Outline" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}">
+     <Grid>
+      <Border Background="{TemplateBinding Foreground}" Opacity="0.055" CornerRadius="2"/>
+      <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+     </Grid>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Outline" Property="BorderBrush" Value="#75BEFF"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate>
+  </Setter.Value></Setter>
+ </Style>
  <Style TargetType="ScrollBar">
   <Setter Property="Width" Value="10"/>
   <Setter Property="Template"><Setter.Value>
