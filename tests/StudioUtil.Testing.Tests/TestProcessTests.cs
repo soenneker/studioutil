@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -21,7 +22,7 @@ public sealed class TestProcessTests
                 <Project>
                   <Target Name="Fail"><Error Text="intentional build failure" /></Target>
                   <Target Name="Wait">
-                    <Exec Command="powershell -NoProfile -Command &quot;Write-Output ('child:' + $PID); Start-Sleep -Seconds 60&quot;" />
+                    <Exec StandardOutputImportance="High" Command="powershell -NoProfile -NonInteractive -Command &quot;Write-Output ('child:' + $PID); Start-Sleep -Seconds 300&quot;" />
                   </Target>
                 </Project>
                 """);
@@ -32,20 +33,26 @@ public sealed class TestProcessTests
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("intentional build failure")) { }
 
-            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            // Allow cold CI startup while keeping the child alive well beyond the deadline:
+            // receiving its PID must cancel the build before the command completes naturally.
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var output = new ConcurrentQueue<string>();
             try
             {
-                await TestProcess.RunAsync(new[] { "msbuild", project, "-t:Wait", "-nologo" }, directory, line =>
+                await TestProcess.RunAsync(new[] { "msbuild", project, "-t:Wait", "-nologo", "-v:normal", "-tl:off" }, directory, line =>
                 {
+                    output.Enqueue(line);
                     string text = line.Trim();
                     if (!text.StartsWith("child:") || !int.TryParse(text.Substring(6), out int pid)) return;
                     childPid = pid;
                     cancellation.Cancel();
-                }, cancellation.Token).WaitAsync(TimeSpan.FromSeconds(25));
+                }, cancellation.Token).WaitAsync(TimeSpan.FromSeconds(75));
                 throw new Exception("Cancellation was ignored.");
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
-            if (childPid == 0) throw new Exception("Build output was not streamed before completion.");
+            if (childPid == 0)
+                throw new Exception("Timed out waiting for the child PID to be streamed within 60 seconds. Build output:\n" +
+                    string.Join(Environment.NewLine, output));
             try
             {
                 using var child = Process.GetProcessById(childPid);
