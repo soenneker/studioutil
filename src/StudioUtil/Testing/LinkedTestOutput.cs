@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.VisualStudio.PlatformUI;
 
@@ -37,6 +39,27 @@ public sealed class LinkedTestOutput : UserControl
         style.Setters.Add(new Setter(MarginProperty, new Thickness(0)));
         style.Setters.Add(new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
         _list.ItemContainerStyle = style;
+        _list.CommandBindings.Add(new CommandBinding(ApplicationCommands.Copy,
+            (_, e) => { CopySelection(); e.Handled = true; },
+            (_, e) => { e.CanExecute = _list.SelectedItems.Count > 0; e.Handled = true; }));
+        _list.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.C || Keyboard.Modifiers != ModifierKeys.Control) return;
+            CopySelection();
+            e.Handled = true;
+        };
+        _list.PreviewMouseRightButtonDown += (_, e) =>
+        {
+            var item = ItemsControl.ContainerFromElement(_list, e.OriginalSource as DependencyObject) as ListBoxItem;
+            if (item == null) return;
+            if (!item.IsSelected) { _list.SelectedItems.Clear(); item.IsSelected = true; }
+            item.Focus();
+            e.Handled = true;
+        };
+        var menu = new ContextMenu();
+        menu.Items.Add(new MenuItem { Header = "_Copy", Command = ApplicationCommands.Copy,
+            CommandTarget = _list, InputGestureText = "Ctrl+C" });
+        _list.ContextMenu = menu;
         Content = _list;
         Loaded += (_, _) => { _scroll = FindScroll(_list); RefreshLog(); };
         IsVisibleChanged += (_, _) => { if (IsVisible) SetBuffer(_source ?? _owned); };
@@ -106,6 +129,18 @@ public sealed class LinkedTestOutput : UserControl
         if (first && _lines.Count > 0) _lines[_lines.Count - 1] = new OutputLogEntry(line);
         else _lines.Add(new OutputLogEntry(line));
         first = false;
+    }
+
+    private void CopySelection()
+    {
+        if (_list.SelectedItems.Count == 0) return;
+        var selected = new HashSet<OutputLogEntry>(_list.SelectedItems.Cast<OutputLogEntry>());
+        string text = string.Join(Environment.NewLine, _lines.Where(selected.Contains).Select(line => line.Text));
+        try { Clipboard.SetText(text); }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            System.Diagnostics.Trace.TraceError($"Could not copy selected output: {ex.Message}");
+        }
     }
 
     private static ScrollViewer? FindScroll(DependencyObject parent)
