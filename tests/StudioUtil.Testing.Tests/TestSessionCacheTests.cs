@@ -70,7 +70,7 @@ public sealed class TestSessionCacheTests
             var loaded = (await Cache(directory).LoadAsync(Path.Combine(directory, "one.slnx")))!;
             var restored = TestTreeNode.Restore(loaded.Roots[0]);
             var result = restored.Children[0].Children[0];
-            Check(result.State == "passed" && result.Output == "previous output" && result.DurationLabel == "12.5 ms", "Result details did not survive reopening.");
+            Check(result.State == "passed" && result.Output == "previous output" && result.DurationLabel == "12.50 ms", "Result details did not survive reopening.");
             Check(result.LastRunUtc == test.LastRunUtc && result.Line == 42 && result.FilePath == "Tests.cs", "Source or run timestamp was lost.");
             Check(restored.IsExpanded && restored.Children[0].IsExpanded && restored.TestCount == 1, "Tree structure was lost.");
             Check(loaded.SelectedKey == snapshot.SelectedKey && loaded.SessionLog == "previous build", "Session context was lost.");
@@ -95,7 +95,7 @@ public sealed class TestSessionCacheTests
         {
             ["execution-state"] = "discovered", ["location.line-start"] = 99, ["location.file"] = "Moved.cs"
         }, null)), discovery: true);
-        Check(test.State == "failed" && test.Output == "failure log" && test.DurationLabel == "23 ms" && test.LastRunUtc == lastRun,
+        Check(test.State == "failed" && test.Output == "failure log" && test.DurationLabel == "23.00 ms" && test.LastRunUtc == lastRun,
             "Discovery overwrote the previous run.");
         Check(test.Line == 99 && test.FilePath == "Moved.cs", "Discovery did not refresh source metadata.");
         test.Reset();
