@@ -80,6 +80,12 @@
 	</Commands>
 
 	<CommandPlacements>
+        <CommandPlacement guid="StudioUtil" id="TestRunnerCommand" priority="0x1100">
+            <Parent guid="StudioUtil" id="menuGroup" />
+        </CommandPlacement>
+        <CommandPlacement guid="StudioUtil" id="TestRunnerCommand" priority="0x1000">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        </CommandPlacement>
 		<CommandPlacement guid="StudioUtil" id="grpIdMenuProjectItem" priority="0xF00">
 			<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ITEMNODE" />
 		</CommandPlacement>

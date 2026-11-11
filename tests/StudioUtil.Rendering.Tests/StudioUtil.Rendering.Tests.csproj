@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><TargetFramework>net11.0-windows</TargetFramework><OutputType>Exe</OutputType><UseWPF>true</UseWPF><Nullable>enable</Nullable></PropertyGroup>
- <ItemGroup><PackageReference Include="TUnit" Version="1.76.28" />
+ <ItemGroup><PackageReference Include="TUnit" Version="1.83.0" />
  <Compile Include="../../src/StudioUtil/Testing/LinkedTestOutput.cs" />
  <Compile Include="../../src/StudioUtil/Testing/OutputLogLine.cs" />
  <Compile Include="../../src/StudioUtil/Testing/OutputLogEntry.cs" />
